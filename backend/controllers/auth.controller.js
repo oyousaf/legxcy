@@ -84,7 +84,7 @@ export const login = async (req, res) => {
       });
     } else {
       res
-        .status(401)
+        .status(400)
         .json({ message: "Invalid email or password. Please try again." });
     }
   } catch {
