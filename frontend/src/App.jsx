@@ -15,8 +15,6 @@ import { useCartStore } from "./stores/useCartStore";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 
-import { SpeedInsights } from "@vercel/speed-insights/react"
-
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
@@ -76,7 +74,6 @@ function App() {
         </Routes>
       </div>
       <Toaster />
-      <SpeedInsights />
     </div>
   );
 }
