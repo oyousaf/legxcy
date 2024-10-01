@@ -15,6 +15,7 @@
     "chart.js": "^4.4.4",
     "cookie-parser": "^1.4.6",
     "framer-motion": "^11.7.0",
+    "legxcy": "file:..",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-confetti": "^6.1.0",
