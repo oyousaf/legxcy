@@ -1,4 +1,4 @@
-import logo from "/logo.svg";
+import logo from "/logo.png";
 
 import { Link } from "react-router-dom";
 import { FaUserPlus } from "react-icons/fa";
@@ -16,7 +16,7 @@ const Navbar = () => {
   return (
     <header className="fixed top-0 left-0 w-full bg-[#003632] bg-opacity-90 backdrop-blur-md shadow-lg z-40 transition-all duration-300 border-b border-emerald-800">
       <div className="container mx-auto px-4 py-3">
-        <div className="flex felx-wrap justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center">
           <Link to="/" className="items-center space-x-2 flex">
             <img src={logo} width={100} height={40} />
           </Link>
