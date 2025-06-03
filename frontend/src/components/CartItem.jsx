@@ -34,7 +34,7 @@ const CartItem = ({ item }) => {
                 border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2
                 focus:ring-emerald-500"
               onClick={() =>
-                requireAuth(() => updateQuantity(item._id, item.quantity - 1))
+                requireAuth(() => updateQuantity(item.id, item.quantity - 1))
               }
             >
               <FaMinus className="text-gray-300" />
@@ -45,7 +45,7 @@ const CartItem = ({ item }) => {
                 border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none 
                 focus:ring-2 focus:ring-emerald-500"
               onClick={() =>
-                requireAuth(() => updateQuantity(item._id, item.quantity + 1))
+                requireAuth(() => updateQuantity(item.id, item.quantity + 1))
               }
             >
               <FaPlus className="text-gray-300" />
@@ -67,9 +67,9 @@ const CartItem = ({ item }) => {
 
           <div className="flex items-center gap-4">
             <button
-              className="inline-flex items-center text-sm font-medium text-red-400
+              className="inline-flex items-center text-sm font-medium text-red-500
                 hover:text-red-300 hover:underline"
-              onClick={() => requireAuth(() => removeFromCart(item._id))}
+              onClick={() => requireAuth(() => removeFromCart(item.id))}
             >
               <GoTrash />
             </button>

@@ -36,16 +36,8 @@ const AdminPage = () => {
     }
   }, [checkingAuth, user, profile, navigate]);
 
-  // While loading or unauthorized
   if (checkingAuth || !user || !profile) {
     return <LoadingSpinner />;
-  }
-  if (profile.role !== "admin") {
-    return (
-      <div className="text-center py-20 text-emerald-400 text-2xl font-bold">
-        Access denied: Admins only
-      </div>
-    );
   }
 
   return (

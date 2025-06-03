@@ -10,29 +10,29 @@ export const useCartStore = create((set, get) => ({
   subtotal: 0,
   isCouponApplied: false,
 
-  // Get my user's applied coupon (from user_coupons, or similar)
+  // Get the coupon applied by the current user
   getMyCoupon: async () => {
     try {
-      // Assuming only one coupon per user
       const { user } = useUserStore.getState();
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("user_coupons")
-        .select("coupon:coupon_id(*)")
+        .from("coupons")
+        .select("*")
         .eq("userId", user.id)
         .maybeSingle();
 
       if (error) throw error;
-      set({ coupon: data?.coupon || null, isCouponApplied: !!data?.coupon });
+      set({ coupon: data || null, isCouponApplied: !!data });
     } catch (error) {
       set({ coupon: null, isCouponApplied: false });
     }
   },
 
+  // Apply a coupon by code; only one coupon per user
   applyCoupon: async (code) => {
     try {
-      // Validate the coupon code
+      // 1. Find the coupon with this code that is active
       const { data: coupon, error } = await supabase
         .from("coupons")
         .select("*")
@@ -42,14 +42,22 @@ export const useCartStore = create((set, get) => ({
 
       if (error || !coupon) throw new Error("Invalid or inactive coupon");
 
-      // Save coupon to user's account (optional, can be just in-memory)
       const { user } = useUserStore.getState();
-      if (user) {
-        // Upsert user's coupon (one per user)
-        await supabase
-          .from("user_coupons")
-          .upsert({ userId: user.id, coupon_id: coupon.id });
-      }
+      if (!user) throw new Error("User not logged in");
+
+      // 2. Remove any previously applied coupon for this user
+      await supabase
+        .from("coupons")
+        .update({ userId: null })
+        .eq("userId", user.id);
+
+      // 3. Assign this coupon to the user (set its userId)
+      const { error: updateError } = await supabase
+        .from("coupons")
+        .update({ userId: user.id })
+        .eq("id", coupon.id);
+
+      if (updateError) throw updateError;
 
       set({ coupon, isCouponApplied: true });
       get().calculateTotals();
@@ -59,18 +67,22 @@ export const useCartStore = create((set, get) => ({
     }
   },
 
+  // Remove the applied coupon (unset userId)
   removeCoupon: async () => {
     const { user } = useUserStore.getState();
     if (user) {
-      // Remove coupon from user_coupons table
-      await supabase.from("user_coupons").delete().eq("userId", user.id);
+      // Set userId to null for the user's currently applied coupon
+      await supabase
+        .from("coupons")
+        .update({ userId: null })
+        .eq("userId", user.id);
     }
     set({ coupon: null, isCouponApplied: false });
     get().calculateTotals();
     toast.success("Coupon removed");
   },
 
-  // Fetch cart items for logged-in user from Supabase
+  // Fetch cart items for the logged-in user
   getCartItems: async () => {
     const { user } = useUserStore.getState();
     if (!user) {
@@ -107,18 +119,16 @@ export const useCartStore = create((set, get) => ({
     set({ cart: [], coupon: null, total: 0, subtotal: 0 });
   },
 
-  // Add product to cart (logged-in user: Supabase; guest: local only)
   addToCart: async (product) => {
     const { user } = useUserStore.getState();
 
     if (user) {
-      // Upsert cart item in DB
       const { error } = await supabase
         .from("cart_items")
         .upsert({
           userId: user.id,
           productId: product.id,
-          quantity: 1
+          quantity: 1,
         })
         .eq("userId", user.id)
         .eq("productId", product.id);

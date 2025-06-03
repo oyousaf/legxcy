@@ -60,9 +60,7 @@ const Navbar = () => {
               <>
                 {/* Show name/email/profile if desired */}
                 <span className="text-white px-3">
-                  {profile?.name
-                    ? `Hi, ${profile.name}`
-                    : user.email}
+                  {profile?.name ? `Hi, ${profile.name}` : user.email}
                   {isAdmin && <b> (Admin)</b>}
                 </span>
                 <button
