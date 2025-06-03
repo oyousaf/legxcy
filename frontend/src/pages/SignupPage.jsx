@@ -61,6 +61,7 @@ const SignupPage = () => {
                 <input
                   id="name"
                   type="text"
+                  autoComplete="name"
                   required
                   value={formData.name}
                   onChange={(e) =>
@@ -90,6 +91,7 @@ const SignupPage = () => {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={(e) =>
@@ -121,6 +123,7 @@ const SignupPage = () => {
                 <input
                   id="password"
                   type="password"
+                  autoComplete="new-password"
                   required
                   value={formData.password}
                   onChange={(e) =>
@@ -150,6 +153,7 @@ const SignupPage = () => {
                 <input
                   id="confirmPassword"
                   type="password"
+                  autoComplete="new-password"
                   required
                   value={formData.confirmPassword}
                   onChange={(e) =>
