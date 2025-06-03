@@ -73,10 +73,20 @@ export const useUserStore = create((set, get) => ({
 
   checkAuth: async () => {
     set({ checkingAuth: true });
-    const { data } = await supabase.auth.getUser();
-    const user = data.user || data.session?.user;
-    set({ user, checkingAuth: false });
-    if (user) await get().fetchProfile(user.id);
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      const user = data.user || data.session?.user;
+      set({ user, profile: null });
+
+      if (user) {
+        await get().fetchProfile(user.id);
+      }
+    } catch (error) {
+      set({ user: null, profile: null });
+    } finally {
+      set({ checkingAuth: false });
+    }
   },
 
   fetchProfile: async (userId) => {

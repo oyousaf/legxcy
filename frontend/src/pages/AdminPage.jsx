@@ -29,17 +29,19 @@ const AdminPage = () => {
     fetchAllProducts();
   }, [fetchAllProducts]);
 
-  // Only allow admins
+  // Only allow admins after auth/profile have loaded
   useEffect(() => {
-    if (!checkingAuth && (profile?.role !== "admin" || !user)) {
+    if (!checkingAuth && (!user || profile?.role !== "admin")) {
       navigate("/", { replace: true });
     }
   }, [checkingAuth, user, profile, navigate]);
 
+  // Show loading spinner while waiting for auth/profile to load
   if (checkingAuth || !user || !profile) {
     return <LoadingSpinner />;
   }
 
+  // Render dashboard if admin
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="relative z-10 container mx-auto px-4 py-16">
@@ -75,4 +77,5 @@ const AdminPage = () => {
     </div>
   );
 };
+
 export default AdminPage;
