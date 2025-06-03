@@ -26,17 +26,24 @@ export const useUserStore = create((set, get) => ({
       return toast.error(error.message || "An error occurred");
     }
 
-    if (data.user) {
-      await supabase
+    const user = data?.user || data?.session?.user;
+    if (user) {
+      const { error: upsertError } = await supabase
         .from("profiles")
-        .upsert([{ id: data.user.id, name, role: "customer" }]);
-      await get().fetchProfile(data.user.id);
+        .upsert([{ id: user.id, name, role: "customer" }]);
+      if (upsertError) {
+        set({ loading: false });
+        return toast.error(upsertError.message || "Profile creation failed");
+      }
+      await get().fetchProfile(user.id);
+      set({ user, loading: false });
+      toast.success(
+        "Sign up successful! Please check your email to verify your account."
+      );
+    } else {
+      set({ loading: false });
+      toast.error("No user returned from sign up");
     }
-
-    set({ user: data.user, loading: false });
-    toast.success(
-      "Sign up successful! Please check your email to verify your account."
-    );
   },
 
   login: async (email, password) => {
@@ -52,8 +59,9 @@ export const useUserStore = create((set, get) => ({
       return toast.error(error.message || "An error occurred");
     }
 
-    set({ user: data.user, loading: false });
-    await get().fetchProfile(data.user.id);
+    const user = data.user || data.session?.user;
+    set({ user, loading: false });
+    if (user) await get().fetchProfile(user.id);
     toast.success("Logged in!");
   },
 
@@ -65,15 +73,12 @@ export const useUserStore = create((set, get) => ({
 
   checkAuth: async () => {
     set({ checkingAuth: true });
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data } = await supabase.auth.getUser();
+    const user = data.user || data.session?.user;
     set({ user, checkingAuth: false });
     if (user) await get().fetchProfile(user.id);
   },
 
-  // Fetch profile from 'profiles' table
   fetchProfile: async (userId) => {
     if (!userId) return set({ profile: null });
     const { data, error } = await supabase
@@ -85,7 +90,6 @@ export const useUserStore = create((set, get) => ({
     set({ profile: error ? null : data });
   },
 
-  // Update profile fields (example: name)
   updateProfile: async (updates) => {
     const user = get().user;
     if (!user) return;
@@ -102,11 +106,13 @@ export const useUserStore = create((set, get) => ({
 }));
 
 // Keep auth in sync even on session refresh/restore
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session?.user) {
-    useUserStore.setState({ user: session.user });
-    await useUserStore.getState().fetchProfile(session.user.id);
-  } else {
-    useUserStore.setState({ user: null, profile: null });
-  }
-});
+if (typeof window !== "undefined") {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      useUserStore.setState({ user: session.user });
+      await useUserStore.getState().fetchProfile(session.user.id);
+    } else {
+      useUserStore.setState({ user: null, profile: null });
+    }
+  });
+}

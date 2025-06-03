@@ -30,12 +30,10 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
-
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-
   if (error) {
     let msg = error.message;
     if (msg.toLowerCase().includes("email not confirmed")) {
@@ -43,12 +41,19 @@ export const login = async (req, res) => {
     }
     return res.status(401).json({ message: msg });
   }
+  const user = data.user || data.session?.user;
+  const access_token = data.session?.access_token;
+  const refresh_token = data.session?.refresh_token;
+
+  if (!user || !access_token) {
+    return res.status(500).json({ message: "Login failed." });
+  }
 
   return res.json({
-    id: data.user.id,
-    email: data.user.email,
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
+    id: user.id,
+    email: user.email,
+    access_token,
+    refresh_token,
   });
 };
 
