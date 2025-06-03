@@ -1,14 +1,18 @@
-import Coupon from "../models/coupon.model.js";
+import { supabase } from "../lib/supabase.js";
 
 export const getCoupon = async (req, res) => {
   try {
-    const coupon = await Coupon.findOne({
-      userId: req.user._id,
-      isActive: true,
-    });
+    const { data: coupon, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("userId", req.user.id)
+      .eq("isActive", true)
+      .order("createdAt", { ascending: false })
+      .limit(1)
+      .single();
+    if (error && error.code !== "PGRST116") throw error;
     res.json(coupon || null);
   } catch (error) {
-    console.log("Error in getCoupon controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -16,19 +20,25 @@ export const getCoupon = async (req, res) => {
 export const validateCoupon = async (req, res) => {
   try {
     const { code } = req.body;
-    const coupon = await Coupon.findOne({
-      code: code,
-      userId: req.user._id,
-      isActive: true,
-    });
+    const { data: coupon, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("code", code)
+      .eq("userId", req.user.id)
+      .eq("isActive", true)
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
 
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
     }
-
-    if (coupon.expirationDate < new Date()) {
-      coupon.isActive = false;
-      await coupon.save();
+    if (new Date(coupon.expirationDate) < new Date()) {
+      await supabase
+        .from("coupons")
+        .update({ isActive: false, updatedAt: new Date().toISOString() })
+        .eq("id", coupon.id);
       return res.status(404).json({ message: "Coupon expired" });
     }
 
@@ -38,7 +48,6 @@ export const validateCoupon = async (req, res) => {
       discountPercentage: coupon.discountPercentage,
     });
   } catch (error) {
-    console.log("Error in validateCoupon controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

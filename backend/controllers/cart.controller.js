@@ -1,20 +1,22 @@
-import Product from "../models/product.model.js";
+import { supabase } from "../lib/supabase.js";
+import { v4 as uuidv4 } from "uuid";
 
 export const getCartProducts = async (req, res) => {
   try {
-    const products = await Product.find({ _id: { $in: req.user.cartItems } });
+    const { data: cartItems, error } = await supabase
+      .from("cart_items")
+      .select("id, quantity, product:products(*)")
+      .eq("userId", req.user.id);
 
-    // add quantity for each product
-    const cartItems = products.map((product) => {
-      const item = req.user.cartItems.find(
-        (cartItem) => cartItem.id === product.id
-      );
-      return { ...product.toJSON(), quantity: item.quantity };
-    });
+    if (error) throw error;
 
-    res.json(cartItems);
+    const result = cartItems.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    res.json(result);
   } catch (error) {
-    console.log("Error in getCartProducts controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -22,19 +24,45 @@ export const getCartProducts = async (req, res) => {
 export const addToCart = async (req, res) => {
   try {
     const { productId } = req.body;
-    const user = req.user;
+    const { data: existing, error: findErr } = await supabase
+      .from("cart_items")
+      .select("*")
+      .eq("userId", req.user.id)
+      .eq("productId", productId)
+      .single();
 
-    const existingItem = user.cartItems.find((item) => item.id === productId);
-    if (existingItem) {
-      existingItem.quantity += 1;
+    if (findErr && findErr.code !== "PGRST116") throw findErr;
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from("cart_items")
+        .update({ quantity: existing.quantity + 1 })
+        .eq("id", existing.id);
+      if (updateErr) throw updateErr;
     } else {
-      user.cartItems.push(productId);
+      const { error: insertErr } = await supabase.from("cart_items").insert([
+        {
+          id: uuidv4(),
+          userId: req.user.id,
+          productId,
+          quantity: 1,
+        },
+      ]);
+      if (insertErr) throw insertErr;
     }
 
-    await user.save();
-    res.json(user.cartItems);
+    const { data: cartItems } = await supabase
+      .from("cart_items")
+      .select("id, quantity, product:products(*)")
+      .eq("userId", req.user.id);
+
+    const result = cartItems.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    res.json(result);
   } catch (error) {
-    console.log("Error in addToCart controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -42,14 +70,32 @@ export const addToCart = async (req, res) => {
 export const removeAllFromCart = async (req, res) => {
   try {
     const { productId } = req.body;
-    const user = req.user;
     if (!productId) {
-      user.cartItems = [];
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("userId", req.user.id);
+      if (error) throw error;
     } else {
-      user.cartItems = user.cartItems.filter((item) => item.id !== productId);
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("userId", req.user.id)
+        .eq("productId", productId);
+      if (error) throw error;
     }
-    await user.save();
-    res.json(user.cartItems);
+
+    const { data: cartItems } = await supabase
+      .from("cart_items")
+      .select("id, quantity, product:products(*)")
+      .eq("userId", req.user.id);
+
+    const result = cartItems.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -59,24 +105,45 @@ export const updateQuantity = async (req, res) => {
   try {
     const { id: productId } = req.params;
     const { quantity } = req.body;
-    const user = req.user;
-    const existingItem = user.cartItems.find((item) => item.id === productId);
 
-    if (existingItem) {
-      if (quantity === 0) {
-        user.cartItems = user.cartItems.filter((item) => item.id !== productId);
-        await user.save();
-        return res.json(user.cartItems);
-      }
+    const { data: cartItem, error: findErr } = await supabase
+      .from("cart_items")
+      .select("*")
+      .eq("userId", req.user.id)
+      .eq("productId", productId)
+      .single();
 
-      existingItem.quantity = quantity;
-      await user.save();
-      res.json(user.cartItems);
-    } else {
-      res.status(404).json({ message: "Product not found" });
+    if (findErr && findErr.code !== "PGRST116") throw findErr;
+    if (!cartItem) {
+      return res.status(404).json({ message: "Product not found" });
     }
+
+    if (quantity === 0) {
+      const { error: delErr } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("id", cartItem.id);
+      if (delErr) throw delErr;
+    } else {
+      const { error: updateErr } = await supabase
+        .from("cart_items")
+        .update({ quantity })
+        .eq("id", cartItem.id);
+      if (updateErr) throw updateErr;
+    }
+
+    const { data: cartItems } = await supabase
+      .from("cart_items")
+      .select("id, quantity, product:products(*)")
+      .eq("userId", req.user.id);
+
+    const result = cartItems.map((item) => ({
+      ...item.product,
+      quantity: item.quantity,
+    }));
+
+    res.json(result);
   } catch (error) {
-    console.log("Error in updateQuantity controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

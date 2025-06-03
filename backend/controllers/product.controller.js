@@ -1,39 +1,46 @@
-import { redis } from "../lib/redis.js";
-import cloudinary from "../lib/cloudinary.js";
-import Product from "../models/product.model.js";
+import { supabase } from "../lib/supabase.js";
+import {
+  uploadImageToSupabase,
+  deleteImageFromSupabase,
+} from "../lib/supabaseStorage.js";
+
+let featuredProductsCache = null;
+let featuredProductsCacheTimestamp = 0;
+const FEATURED_CACHE_TTL = 60 * 5 * 1000;
 
 export const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find({}); // find all products
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("*");
+    if (error) throw error;
     res.json({ products });
   } catch (error) {
-    console.log("Error in getAllProducts controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const getFeaturedProducts = async (req, res) => {
   try {
-    let featuredProducts = await redis.get("featured_products");
-    if (featuredProducts) {
-      return res.json(JSON.parse(featuredProducts));
+    if (
+      featuredProductsCache &&
+      Date.now() - featuredProductsCacheTimestamp < FEATURED_CACHE_TTL
+    ) {
+      return res.json(featuredProductsCache);
     }
+    const { data: featuredProducts, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("isFeatured", true);
 
-    // if not in redis, fetch from mongodb
-    // .lean() is gonna return a plain javascript object instead of a mongodb document
-    featuredProducts = await Product.find({ isFeatured: true }).lean();
-
-    if (!featuredProducts) {
+    if (error) throw error;
+    if (!featuredProducts || featuredProducts.length === 0) {
       return res.status(404).json({ message: "No featured products found" });
     }
-
-    // store in redis for future quick access
-
-    await redis.set("featured_products", JSON.stringify(featuredProducts));
-
+    featuredProductsCache = featuredProducts;
+    featuredProductsCacheTimestamp = Date.now();
     res.json(featuredProducts);
   } catch (error) {
-    console.log("Error in getFeaturedProducts controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -42,117 +49,110 @@ export const createProduct = async (req, res) => {
   try {
     const { name, description, price, image, category } = req.body;
 
-    let cloudinaryResponse = null;
-
+    let imageUrl = "";
     if (image) {
-      cloudinaryResponse = await cloudinary.uploader.upload(image, {
-        folder: "products",
-      });
+      const uploadRes = await uploadImageToSupabase(image, "products");
+      if (uploadRes.error) throw new Error(uploadRes.error.message);
+      imageUrl = uploadRes.publicUrl;
     }
 
-    const product = await Product.create({
-      name,
-      description,
-      price,
-      image: cloudinaryResponse?.secure_url
-        ? cloudinaryResponse.secure_url
-        : "",
-      category,
-    });
-
+    const { data: product, error } = await supabase
+      .from("products")
+      .insert([{ name, description, price, image: imageUrl, category }])
+      .select()
+      .single();
+    if (error) throw error;
     res.status(201).json(product);
   } catch (error) {
-    console.log("Error in createProduct controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
+    const { data: product, error: getError } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (getError || !product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     if (product.image) {
-      const publicId = product.image.split("/").pop().split(".")[0];
-      try {
-        await cloudinary.uploader.destroy(`products/${publicId}`);
-        console.log("Deleted image from Cloudinary");
-      } catch (error) {
-        console.log("Error deleting image from Cloudinary", error);
-      }
+      await deleteImageFromSupabase(product.image);
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    const { error: deleteError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", req.params.id);
 
+    if (deleteError) throw deleteError;
     res.json({ message: "Product deleted successfully" });
   } catch (error) {
-    console.log("Error in deleteProduct controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const getRecommendedProducts = async (req, res) => {
   try {
-    const products = await Product.aggregate([
-      {
-        $sample: { size: 4 },
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          image: 1,
-          price: 1,
-        },
-      },
-    ]);
-
+    const { data: products, error } = await supabase.rpc(
+      "get_random_products",
+      { sample_size: 4 }
+    );
+    if (error) throw error;
     res.json(products);
   } catch (error) {
-    console.log("Error in getRecommendedProducts controller", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    const { data: products, error: e2 } = await supabase
+      .from("products")
+      .select("*")
+      .order("createdAt", { ascending: false })
+      .limit(4);
+    if (e2) {
+      return res
+        .status(500)
+        .json({ message: "Server error", error: e2.message });
+    }
+    res.json(products);
   }
 };
 
 export const getProductsByCategory = async (req, res) => {
   const { category } = req.params;
   try {
-    const products = await Product.find({ category });
+    const { data: products, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("category", category);
+    if (error) throw error;
     res.json({ products });
   } catch (error) {
-    console.log("Error in getProductsByCategory controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
 export const toggleFeaturedProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-    if (product) {
-      product.isFeatured = !product.isFeatured;
-      const updatedProduct = await product.save();
-      await updateFeaturedProductsCache();
-      res.json(updatedProduct);
-    } else {
-      res.status(404).json({ message: "Product not found" });
+    const { data: product, error: getError } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (getError || !product) {
+      return res.status(404).json({ message: "Product not found" });
     }
+    const updatedProduct = { ...product, isFeatured: !product.isFeatured };
+    const { data: result, error: updateError } = await supabase
+      .from("products")
+      .update({ isFeatured: updatedProduct.isFeatured })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+    if (updateError) throw updateError;
+    featuredProductsCache = null;
+    res.json(result);
   } catch (error) {
-    console.log("Error in toggleFeaturedProduct controller", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-async function updateFeaturedProductsCache() {
-  try {
-    // The lean() method  is used to return plain JavaScript objects instead of full Mongoose documents. This can significantly improve performance
-
-    const featuredProducts = await Product.find({ isFeatured: true }).lean();
-    await redis.set("featured_products", JSON.stringify(featuredProducts));
-  } catch (error) {
-    console.log("error in update cache function");
-  }
-}
