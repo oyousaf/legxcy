@@ -26,7 +26,13 @@ export const login = async (req, res) => {
     password,
   });
 
-  if (error) return res.status(401).json({ message: error.message });
+  if (error) {
+    let msg = error.message;
+    if (msg.includes("Email not confirmed")) {
+      msg = "Please verify your email address. Check your inbox.";
+    }
+    return res.status(401).json({ message: msg });
+  }
 
   res.json({
     id: data.user.id,

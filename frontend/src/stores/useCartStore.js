@@ -20,7 +20,7 @@ export const useCartStore = create((set, get) => ({
       const { data, error } = await supabase
         .from("user_coupons")
         .select("coupon:coupon_id(*)")
-        .eq("user_id", user.id)
+        .eq("userId", user.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -48,7 +48,7 @@ export const useCartStore = create((set, get) => ({
         // Upsert user's coupon (one per user)
         await supabase
           .from("user_coupons")
-          .upsert({ user_id: user.id, coupon_id: coupon.id });
+          .upsert({ userId: user.id, coupon_id: coupon.id });
       }
 
       set({ coupon, isCouponApplied: true });
@@ -63,7 +63,7 @@ export const useCartStore = create((set, get) => ({
     const { user } = useUserStore.getState();
     if (user) {
       // Remove coupon from user_coupons table
-      await supabase.from("user_coupons").delete().eq("user_id", user.id);
+      await supabase.from("user_coupons").delete().eq("userId", user.id);
     }
     set({ coupon: null, isCouponApplied: false });
     get().calculateTotals();
@@ -80,14 +80,14 @@ export const useCartStore = create((set, get) => ({
     try {
       const { data, error } = await supabase
         .from("cart_items")
-        .select("*, product:product_id(*)")
-        .eq("user_id", user.id);
+        .select("*, product:productId(*)")
+        .eq("userId", user.id);
 
       if (error) throw error;
 
       const cart = (data || []).map((item) => ({
         ...item.product,
-        id: item.product_id,
+        id: item.productId,
         quantity: item.quantity,
       }));
 
@@ -102,7 +102,7 @@ export const useCartStore = create((set, get) => ({
   clearCart: async () => {
     const { user } = useUserStore.getState();
     if (user) {
-      await supabase.from("cart_items").delete().eq("user_id", user.id);
+      await supabase.from("cart_items").delete().eq("userId", user.id);
     }
     set({ cart: [], coupon: null, total: 0, subtotal: 0 });
   },
@@ -116,12 +116,12 @@ export const useCartStore = create((set, get) => ({
       const { error } = await supabase
         .from("cart_items")
         .upsert({
-          user_id: user.id,
-          product_id: product.id,
+          userId: user.id,
+          productId: product.id,
           quantity: 1
         })
-        .eq("user_id", user.id)
-        .eq("product_id", product.id);
+        .eq("userId", user.id)
+        .eq("productId", product.id);
 
       if (error) {
         toast.error(error.message || "An error occurred");
@@ -152,8 +152,8 @@ export const useCartStore = create((set, get) => ({
       await supabase
         .from("cart_items")
         .delete()
-        .eq("user_id", user.id)
-        .eq("product_id", productId);
+        .eq("userId", user.id)
+        .eq("productId", productId);
     }
     set((prevState) => ({
       cart: prevState.cart.filter((item) => item.id !== productId),
@@ -173,8 +173,8 @@ export const useCartStore = create((set, get) => ({
       await supabase
         .from("cart_items")
         .update({ quantity })
-        .eq("user_id", user.id)
-        .eq("product_id", productId);
+        .eq("userId", user.id)
+        .eq("productId", productId);
     }
     set((prevState) => ({
       cart: prevState.cart.map((item) =>
