@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import axios from "../lib/axios";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaUsers, FaPoundSign } from "react-icons/fa";
 import { FiPackage } from "react-icons/fi";
@@ -14,10 +13,12 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
+import { supabase } from "../lib/supabase";
 import LoadingSpinner from "./LoadingSpinner";
+import { useUserStore } from "../stores/useUserStore";
 
 const AnalyticsTab = () => {
+  const { user, profile } = useUserStore();
   const [analyticsData, setAnalyticsData] = useState({
     users: 0,
     products: 0,
@@ -27,12 +28,64 @@ const AnalyticsTab = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dailySalesData, setDailySalesData] = useState([]);
 
+  // Only admins can see analytics
+  if (!user || profile?.role !== "admin") {
+    return (
+      <div className="text-center p-4 text-red-600 font-bold">
+        Admin access only.
+      </div>
+    );
+  }
+
   useEffect(() => {
     const fetchAnalyticsData = async () => {
+      setIsLoading(true);
       try {
-        const response = await axios.get("/analytics");
-        setAnalyticsData(response.data.analyticsData);
-        setDailySalesData(response.data.dailySalesData);
+        // Total users
+        const { count: users } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true });
+
+        // Total products
+        const { count: products } = await supabase
+          .from("products")
+          .select("*", { count: "exact", head: true });
+
+        // Orders table must have total amount and created_at
+        const { data: orders, error } = await supabase
+          .from("orders")
+          .select("totalAmount,created_at");
+
+        // Total sales (number of orders)
+        const totalSales = orders ? orders.length : 0;
+        // Total revenue (sum)
+        const totalRevenue = orders
+          ? orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+          : 0;
+
+        // Generate daily sales/revenue for chart
+        const dailyMap = {};
+        if (orders) {
+          orders.forEach((o) => {
+            const day = o.created_at?.split("T")[0];
+            if (!dailyMap[day]) {
+              dailyMap[day] = { name: day, sales: 0, revenue: 0 };
+            }
+            dailyMap[day].sales += 1;
+            dailyMap[day].revenue += o.totalAmount || 0;
+          });
+        }
+        const dailySalesData = Object.values(dailyMap).sort(
+          (a, b) => new Date(a.name) - new Date(b.name)
+        );
+
+        setAnalyticsData({
+          users: users ?? 0,
+          products: products ?? 0,
+          totalSales,
+          totalRevenue,
+        });
+        setDailySalesData(dailySalesData);
       } catch (error) {
         console.error("Error fetching analytics data:", error);
       } finally {
@@ -113,6 +166,7 @@ const AnalyticsTab = () => {
 };
 export default AnalyticsTab;
 
+// Card component unchanged
 const AnalyticsCard = ({ title, value, icon: Icon, color }) => (
   <motion.div
     className={`bg-gray-800 rounded-lg p-6 shadow-lg overflow-hidden relative ${color}`}

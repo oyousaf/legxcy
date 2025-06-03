@@ -4,13 +4,12 @@ import { FaPlusCircle } from "react-icons/fa";
 import { IoMdCloudUpload } from "react-icons/io";
 import { LuLoader } from "react-icons/lu";
 import { useProductStore } from "../stores/useProductStore";
+import { useUserStore } from "../stores/useUserStore";
 
-const categories = [
-  "hub",
-  "mid",
-];
+const categories = ["hub", "mid"];
 
 const CreateProductForm = () => {
+  const { user, profile } = useUserStore();
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -20,6 +19,15 @@ const CreateProductForm = () => {
   });
 
   const { createProduct, loading } = useProductStore();
+
+  // Only admins can use this form
+  if (!user || profile?.role !== "admin") {
+    return (
+      <div className="text-center p-4 text-red-600 font-bold">
+        Admin access only.
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,8 +86,8 @@ const CreateProductForm = () => {
               setNewProduct({ ...newProduct, name: e.target.value })
             }
             className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2
-						 px-3 text-white focus:outline-none focus:ring-2
-						focus:ring-emerald-500 focus:border-emerald-500"
+             px-3 text-white focus:outline-none focus:ring-2
+            focus:ring-emerald-500 focus:border-emerald-500"
             required
           />
         </div>
@@ -100,8 +108,8 @@ const CreateProductForm = () => {
             }
             rows="3"
             className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm
-						 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 
-						 focus:border-emerald-500"
+             py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 
+             focus:border-emerald-500"
             required
           />
         </div>
@@ -123,8 +131,8 @@ const CreateProductForm = () => {
             }
             step="0.01"
             className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm 
-						py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500
-						 focus:border-emerald-500"
+            py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500
+             focus:border-emerald-500"
             required
           />
         </div>
@@ -144,8 +152,8 @@ const CreateProductForm = () => {
               setNewProduct({ ...newProduct, category: e.target.value })
             }
             className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md
-						 shadow-sm py-2 px-3 text-white focus:outline-none 
-						 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+             shadow-sm py-2 px-3 text-white focus:outline-none 
+             focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             required
           >
             <option value="">Select a category</option>
@@ -180,8 +188,8 @@ const CreateProductForm = () => {
         <button
           type="submit"
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md 
-					shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 
-					focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+          shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
           disabled={loading}
         >
           {loading ? (

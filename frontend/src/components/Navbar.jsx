@@ -9,8 +9,8 @@ import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 
 const Navbar = () => {
-  const { user, logout } = useUserStore();
-  const isAdmin = user?.role === "admin";
+  const { user, profile, logout } = useUserStore();
+  const isAdmin = profile?.role === "admin";
   const { cart } = useCartStore();
 
   return (
@@ -52,19 +52,28 @@ const Navbar = () => {
                 to={"/secret-dashboard"}
               >
                 <FaLock className="inline-block mr-1" size={18} />
-                <span className="hudden sm:inline">Dashboard</span>
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
             )}
 
             {user ? (
-              <button
-                className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-4 rounded-md flex items-center transition duration-300
+              <>
+                {/* Show name/email/profile if desired */}
+                <span className="text-white px-3">
+                  {profile?.name
+                    ? `Hi, ${profile.name}`
+                    : user.email}
+                  {isAdmin && <b> (Admin)</b>}
+                </span>
+                <button
+                  className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-4 rounded-md flex items-center transition duration-300
             ease-in-out"
-                onClick={logout}
-              >
-                <LuLogOut size={18} />
-                <span className="hidden sm:inline ml-2">Logout</span>
-              </button>
+                  onClick={logout}
+                >
+                  <LuLogOut size={18} />
+                  <span className="hidden sm:inline ml-2">Logout</span>
+                </button>
+              </>
             ) : (
               <>
                 <Link

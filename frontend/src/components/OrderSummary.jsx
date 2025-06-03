@@ -1,9 +1,11 @@
 import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
-import { Link } from "react-router-dom";
+import { useUserStore } from "../stores/useUserStore";
+import { Link, useNavigate } from "react-router-dom";
 import { LuMoveRight } from "react-icons/lu";
 import { loadStripe } from "@stripe/stripe-js";
-import axios from "../lib/axios";
+import { supabase } from "../lib/supabase";
+import { toast } from "react-hot-toast";
 
 const stripePromise = loadStripe(
   "pk_test_51Nlrp0A9BSuAkHfX3E7SUPOcMzmJuMkku6WWMsa9wydvFQ685G8Q4KXYtHorBXCV6geXrFKjZPuzuAeNBQVtcsOR001WipQOgF"
@@ -11,6 +13,8 @@ const stripePromise = loadStripe(
 
 const OrderSummary = () => {
   const { total, subtotal, coupon, isCouponApplied, cart } = useCartStore();
+  const { user, checkingAuth } = useUserStore();
+  const navigate = useNavigate();
 
   const savings = subtotal - total;
   const formattedSubtotal = subtotal.toFixed(2);
@@ -18,19 +22,47 @@ const OrderSummary = () => {
   const formattedSavings = savings.toFixed(2);
 
   const handlePayment = async () => {
+    if (!user) {
+      toast.error("Please log in to proceed to checkout.");
+      navigate("/login");
+      return;
+    }
     const stripe = await stripePromise;
-    const res = await axios.post("/payments/create-checkout-session", {
-      products: cart,
-      couponCode: coupon ? coupon.code : null,
-    });
 
-    const session = res.data;
-    const result = await stripe.redirectToCheckout({
-      sessionId: session.id,
-    });
+    // Get user's Supabase access token for secure backend validation
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
-    if (result.error) {
-      console.error("Error:", result.error);
+    try {
+      const res = await fetch("/api/payments/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+        body: JSON.stringify({
+          products: cart,
+          couponCode: coupon ? coupon.code : null,
+        }),
+      });
+
+      const sessionData = await res.json();
+
+      if (sessionData.id) {
+        const result = await stripe.redirectToCheckout({
+          sessionId: sessionData.id,
+        });
+
+        if (result.error) {
+          toast.error(result.error.message || "Stripe error");
+        }
+      } else {
+        toast.error("Failed to start checkout.");
+      }
+    } catch (err) {
+      toast.error("Checkout failed");
     }
   };
 
@@ -58,7 +90,7 @@ const OrderSummary = () => {
             <dl className="flex items-center justify-between gap-4">
               <dt className="text-base font-normal text-gray-300">Savings</dt>
               <dd className="text-base font-medium text-emerald-400">
-                -${formattedSavings}
+                -£{formattedSavings}
               </dd>
             </dl>
           )}
@@ -86,9 +118,20 @@ const OrderSummary = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handlePayment}
+          disabled={!user || checkingAuth}
         >
-          Proceed to Checkout
+          {checkingAuth ? "Checking user..." : "Proceed to Checkout"}
         </motion.button>
+
+        {!user && (
+          <div className="flex items-center justify-center text-red-400 text-sm mt-2">
+            Please{" "}
+            <Link to="/login" className="underline ml-1 text-emerald-300">
+              log in
+            </Link>{" "}
+            to place your order.
+          </div>
+        )}
 
         <div className="flex items-center justify-center gap-2">
           <span className="text-sm font-normal text-gray-400">or</span>
@@ -104,4 +147,5 @@ const OrderSummary = () => {
     </motion.div>
   );
 };
+
 export default OrderSummary;

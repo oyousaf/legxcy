@@ -6,14 +6,15 @@ import { useCartStore } from "../stores/useCartStore";
 const ProductCard = ({ product }) => {
   const { user } = useUserStore();
   const { addToCart } = useCartStore();
+
   const handleAddToCart = () => {
     if (!user) {
-      toast.error("Please login to add products to the cart", { id: "login" });
+      toast.error("Please log in to add products to your cart", {
+        id: "login",
+      });
       return;
-    } else {
-      // add to cart
-      addToCart(product);
     }
+    addToCart(product);
   };
 
   return (
@@ -40,7 +41,7 @@ const ProductCard = ({ product }) => {
         </div>
         <button
           className="flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-center text-sm font-medium
-					 text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+           text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
           onClick={handleAddToCart}
         >
           <FaCartShopping size={22} className="mr-2" />
@@ -50,4 +51,5 @@ const ProductCard = ({ product }) => {
     </div>
   );
 };
+
 export default ProductCard;

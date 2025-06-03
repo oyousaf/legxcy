@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^4.5.0",
+    "@supabase/supabase-js": "^2.49.9",
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
     "cookie-parser": "^1.4.6",

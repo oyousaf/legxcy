@@ -1,9 +1,23 @@
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { GoTrash } from "react-icons/go";
 import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 
 const CartItem = ({ item }) => {
   const { removeFromCart, updateQuantity } = useCartStore();
+  const { user } = useUserStore();
+  const navigate = useNavigate();
+
+  const requireAuth = (action) => {
+    if (!user) {
+      toast.error("Please log in to modify your cart.");
+      navigate("/login");
+      return;
+    }
+    action();
+  };
 
   return (
     <div className="rounded-lg border p-4 shadow-sm border-gray-700 bg-gray-800 md:p-6">
@@ -17,18 +31,22 @@ const CartItem = ({ item }) => {
           <div className="flex items-center gap-2">
             <button
               className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border
-							 border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2
-							  focus:ring-emerald-500"
-              onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2
+                focus:ring-emerald-500"
+              onClick={() =>
+                requireAuth(() => updateQuantity(item._id, item.quantity - 1))
+              }
             >
               <FaMinus className="text-gray-300" />
             </button>
             <p>{item.quantity}</p>
             <button
               className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border
-							 border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none 
-						focus:ring-2 focus:ring-emerald-500"
-              onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                border-gray-600 bg-gray-700 hover:bg-gray-600 focus:outline-none 
+                focus:ring-2 focus:ring-emerald-500"
+              onClick={() =>
+                requireAuth(() => updateQuantity(item._id, item.quantity + 1))
+              }
             >
               <FaPlus className="text-gray-300" />
             </button>
@@ -50,8 +68,8 @@ const CartItem = ({ item }) => {
           <div className="flex items-center gap-4">
             <button
               className="inline-flex items-center text-sm font-medium text-red-400
-							 hover:text-red-300 hover:underline"
-              onClick={() => removeFromCart(item._id)}
+                hover:text-red-300 hover:underline"
+              onClick={() => requireAuth(() => removeFromCart(item._id))}
             >
               <GoTrash />
             </button>
@@ -61,4 +79,5 @@ const CartItem = ({ item }) => {
     </div>
   );
 };
+
 export default CartItem;

@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useCartStore } from "../stores/useCartStore";
+import { useUserStore } from "../stores/useUserStore";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const GiftCouponCard = () => {
   const [userInputCode, setUserInputCode] = useState("");
   const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } =
-     useCartStore();
+    useCartStore();
+
+  const { user } = useUserStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     getMyCoupon();
@@ -16,11 +22,21 @@ const GiftCouponCard = () => {
   }, [coupon]);
 
   const handleApplyCoupon = () => {
+    if (!user) {
+      toast.error("Please log in to use a voucher or gift card.");
+      navigate("/login");
+      return;
+    }
     if (!userInputCode) return;
     applyCoupon(userInputCode);
   };
 
   const handleRemoveCoupon = async () => {
+    if (!user) {
+      toast.error("Please log in to remove your coupon.");
+      navigate("/login");
+      return;
+    }
     await removeCoupon();
     setUserInputCode("");
   };

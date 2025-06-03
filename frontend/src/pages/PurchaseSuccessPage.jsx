@@ -4,23 +4,39 @@ import { PiHandHeartBold } from "react-icons/pi";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCartStore } from "../stores/useCartStore";
-import axios from "../lib/axios";
 import Confetti from "react-confetti";
 
 const PurchaseSuccessPage = () => {
   const [isProcessing, setIsProcessing] = useState(true);
-  const { clearCart } = useCartStore();
   const [error, setError] = useState(null);
+  const { clearCart } = useCartStore();
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+  const [orderNumber, setOrderNumber] = useState(null);
+
+  useEffect(() => {
+    const handleResize = () =>
+      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const handleCheckoutSuccess = async (sessionId) => {
       try {
-        await axios.post("/payments/checkout-success", {
-          sessionId,
+        const res = await fetch("/api/payments/checkout-success", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
         });
+        if (!res.ok) throw new Error("Payment processing failed");
+        const data = await res.json();
         clearCart();
-      } catch (error) {
-        console.log(error);
+        setOrderNumber(data.orderNumber || null);
+      } catch (err) {
+        setError(err.message || "Checkout processing failed");
       } finally {
         setIsProcessing(false);
       }
@@ -37,15 +53,16 @@ const PurchaseSuccessPage = () => {
     }
   }, [clearCart]);
 
-  if (isProcessing) return "Processing...";
-
-  if (error) return `Error: ${error}`;
+  if (isProcessing)
+    return <div className="text-white text-lg text-center">Processing...</div>;
+  if (error)
+    return <div className="text-red-400 text-center py-10">Error: {error}</div>;
 
   return (
     <div className="h-screen flex items-center justify-center px-4">
       <Confetti
-        width={window.innerWidth}
-        height={window.innerHeight}
+        width={dimensions.width}
+        height={dimensions.height}
         gravity={0.1}
         style={{ zIndex: 99 }}
         numberOfPieces={700}
@@ -71,7 +88,8 @@ const PurchaseSuccessPage = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Order number</span>
               <span className="text-sm font-semibold text-emerald-400">
-                #12345
+                {/* If you want a real order number, display it here */}#
+                {orderNumber ? orderNumber : "12345"}
               </span>
             </div>
             <div className="flex items-center justify-between">

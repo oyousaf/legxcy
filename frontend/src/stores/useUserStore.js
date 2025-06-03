@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import axios from "../lib/axios";
+import { supabase } from "../lib/supabase";
 import { toast } from "react-hot-toast";
 
 export const useUserStore = create((set, get) => ({
   user: null,
+  profile: null,
   loading: false,
   checkingAuth: true,
 
@@ -15,94 +16,97 @@ export const useUserStore = create((set, get) => ({
       return toast.error("Passwords do not match");
     }
 
-    try {
-      const res = await axios.post("/auth/signup", { name, email, password });
-      set({ user: res.data, loading: false });
-    } catch (error) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
       set({ loading: false });
-      toast.error(error.response.data.message || "An error occurred");
+      return toast.error(error.message || "An error occurred");
     }
+
+    if (data.user) {
+      await supabase
+        .from("profiles")
+        .upsert([{ id: data.user.id, name, role: "customer" }]);
+      await get().fetchProfile(data.user.id);
+    }
+
+    set({ user: data.user, loading: false });
+    toast.success(
+      "Sign up successful! Please check your email to verify your account."
+    );
   },
 
   login: async (email, password) => {
     set({ loading: true });
 
-    try {
-      const res = await axios.post("/auth/login", { email, password });
-      set({ user: res.data, loading: false });
-    } catch (error) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
       set({ loading: false });
-      toast.error(error.response.data.message || "An error occurred");
+      return toast.error(error.message || "An error occurred");
     }
+
+    set({ user: data.user, loading: false });
+    await get().fetchProfile(data.user.id);
+    toast.success("Logged in!");
   },
 
   logout: async () => {
-    try {
-      await axios.post("/auth/logout");
-      set({ user: null });
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || "An error occurred during logout"
-      );
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) toast.error(error.message || "An error occurred during logout");
+    set({ user: null, profile: null });
   },
 
   checkAuth: async () => {
     set({ checkingAuth: true });
-    try {
-      const response = await axios.get("/auth/profile");
-      set({ user: response.data, checkingAuth: false });
-    } catch (error) {
-      console.log(error.message);
-      set({ checkingAuth: false, user: null });
-    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    set({ user, checkingAuth: false });
+    if (user) await get().fetchProfile(user.id);
   },
 
-  refreshToken: async () => {
-    // Prevent multiple simultaneous refresh attempts
-    if (get().checkingAuth) return;
+  // Fetch profile from 'profiles' table
+  fetchProfile: async (userId) => {
+    if (!userId) return set({ profile: null });
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
-    set({ checkingAuth: true });
-    try {
-      const response = await axios.post("/auth/refresh-token");
-      set({ checkingAuth: false });
-      return response.data;
-    } catch (error) {
-      set({ user: null, checkingAuth: false });
-      throw error;
+    set({ profile: error ? null : data });
+  },
+
+  // Update profile fields (example: name)
+  updateProfile: async (updates) => {
+    const user = get().user;
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", user.id);
+    if (error) toast.error(error.message || "Profile update failed");
+    else {
+      toast.success("Profile updated!");
+      await get().fetchProfile(user.id);
     }
   },
 }));
 
-// Axios interceptor for token refresh
-let refreshPromise = null;
-
-axios.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // If a refresh is already in progress, wait for it to complete
-        if (refreshPromise) {
-          await refreshPromise;
-          return axios(originalRequest);
-        }
-
-        // Start a new refresh process
-        refreshPromise = useUserStore.getState().refreshToken();
-        await refreshPromise;
-        refreshPromise = null;
-
-        return axios(originalRequest);
-      } catch (refreshError) {
-        // If refresh fails, redirect to login or handle as needed
-        useUserStore.getState().logout();
-        return Promise.reject(refreshError);
-      }
-    }
-    return Promise.reject(error);
+// Keep auth in sync even on session refresh/restore
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    useUserStore.setState({ user: session.user });
+    await useUserStore.getState().fetchProfile(session.user.id);
+  } else {
+    useUserStore.setState({ user: null, profile: null });
   }
-);
+});

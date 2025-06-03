@@ -3,11 +3,14 @@ import { FaPlusCircle } from "react-icons/fa";
 import { LuShoppingBasket } from "react-icons/lu";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 import AnalyticsTab from "../components/AnalyticsTab";
 import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import { useProductStore } from "../stores/useProductStore";
+import { useUserStore } from "../stores/useUserStore";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const tabs = [
   { id: "create", label: "Create Product", icon: FaPlusCircle },
@@ -18,10 +21,32 @@ const tabs = [
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("create");
   const { fetchAllProducts } = useProductStore();
+  const { user, profile, checkingAuth } = useUserStore();
+  const navigate = useNavigate();
 
+  // Fetch all products on mount (once)
   useEffect(() => {
     fetchAllProducts();
   }, [fetchAllProducts]);
+
+  // Only allow admins
+  useEffect(() => {
+    if (!checkingAuth && (profile?.role !== "admin" || !user)) {
+      navigate("/", { replace: true });
+    }
+  }, [checkingAuth, user, profile, navigate]);
+
+  // While loading or unauthorized
+  if (checkingAuth || !user || !profile) {
+    return <LoadingSpinner />;
+  }
+  if (profile.role !== "admin") {
+    return (
+      <div className="text-center py-20 text-emerald-400 text-2xl font-bold">
+        Access denied: Admins only
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">

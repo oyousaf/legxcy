@@ -1,86 +1,145 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import axios from "../lib/axios";
+import { supabase } from "../lib/supabase";
 
-export const useProductStore = create((set) => ({
+// Helper: convert Supabase error to readable message
+const getErrorMsg = (error) =>
+  error?.message || error?.description || "Something went wrong";
+
+export const useProductStore = create((set, get) => ({
   products: [],
   loading: false,
 
   setProducts: (products) => set({ products }),
+
+  // CREATE PRODUCT (Admin)
   createProduct: async (productData) => {
     set({ loading: true });
     try {
-      const res = await axios.post("/products", productData);
+      // Handle image: If base64, upload to Supabase storage and get the public URL
+      let imageUrl = productData.image;
+      if (productData.image && productData.image.startsWith("data:")) {
+        const { uploadImageToSupabase } = await import(
+          "../lib/supabaseStorage"
+        );
+        const { publicUrl, error } = await uploadImageToSupabase(
+          productData.image,
+          "products"
+        );
+        if (error) throw new Error("Image upload failed");
+        imageUrl = publicUrl;
+      }
+
+      const { data, error } = await supabase
+        .from("products")
+        .insert([{ ...productData, image: imageUrl }])
+        .select("*")
+        .single();
+
+      if (error) throw error;
       set((prevState) => ({
-        products: [...prevState.products, res.data],
+        products: [...prevState.products, data],
         loading: false,
       }));
+      toast.success("Product created!");
     } catch (error) {
-      toast.error(error.response.data.error);
+      toast.error(getErrorMsg(error));
       set({ loading: false });
     }
   },
+
+  // FETCH ALL PRODUCTS
   fetchAllProducts: async () => {
     set({ loading: true });
     try {
-      const response = await axios.get("/products");
-      set({ products: response.data.products, loading: false });
+      const { data, error } = await supabase.from("products").select("*");
+      if (error) throw error;
+      set({ products: data, loading: false });
     } catch (error) {
-      set({ error: "Failed to fetch products", loading: false });
-      toast.error(error.response.data.error || "Failed to fetch products");
+      set({ loading: false });
+      toast.error(getErrorMsg(error));
     }
   },
+
+  // FETCH PRODUCTS BY CATEGORY
   fetchProductsByCategory: async (category) => {
     set({ loading: true });
     try {
-      const response = await axios.get(`/products/category/${category}`);
-      set({ products: response.data.products, loading: false });
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("category", category);
+      if (error) throw error;
+      set({ products: data, loading: false });
     } catch (error) {
-      set({ error: "Failed to fetch products", loading: false });
-      toast.error(error.response.data.error || "Failed to fetch products");
+      set({ loading: false });
+      toast.error(getErrorMsg(error));
     }
   },
+
+  // DELETE PRODUCT (Admin)
   deleteProduct: async (productId) => {
     set({ loading: true });
     try {
-      await axios.delete(`/products/${productId}`);
-      set((prevProducts) => ({
-        products: prevProducts.products.filter(
-          (product) => product._id !== productId
-        ),
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", productId);
+      if (error) throw error;
+      set((prev) => ({
+        products: prev.products.filter((product) => product.id !== productId),
         loading: false,
       }));
+      toast.success("Product deleted!");
     } catch (error) {
       set({ loading: false });
-      toast.error(error.response.data.error || "Failed to delete product");
+      toast.error(getErrorMsg(error));
     }
   },
+
+  // TOGGLE FEATURED (Admin)
   toggleFeaturedProduct: async (productId) => {
     set({ loading: true });
     try {
-      const response = await axios.patch(`/products/${productId}`);
-      // this will update the isFeatured prop of the product
-      set((prevProducts) => ({
-        products: prevProducts.products.map((product) =>
-          product._id === productId
-            ? { ...product, isFeatured: response.data.isFeatured }
-            : product
+      // Get current state
+      const product = get().products.find((p) => p.id === productId);
+      if (!product) throw new Error("Product not found");
+
+      const { data, error } = await supabase
+        .from("products")
+        .update({ isFeatured: !product.isFeatured })
+        .eq("id", productId)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+
+      set((prev) => ({
+        products: prev.products.map((p) =>
+          p.id === productId ? { ...p, isFeatured: data.isFeatured } : p
         ),
         loading: false,
       }));
+      toast.success("Product updated!");
     } catch (error) {
       set({ loading: false });
-      toast.error(error.response.data.error || "Failed to update product");
+      toast.error(getErrorMsg(error));
     }
   },
+
+  // FETCH FEATURED PRODUCTS ONLY
   fetchFeaturedProducts: async () => {
     set({ loading: true });
     try {
-      const response = await axios.get("/products/featured");
-      set({ products: response.data, loading: false });
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("isFeatured", true);
+      if (error) throw error;
+      set({ products: data, loading: false });
     } catch (error) {
-      set({ error: "Failed to fetch products", loading: false });
-      console.log("Error fetching featured products:", error);
+      set({ loading: false });
+      toast.error(getErrorMsg(error));
     }
   },
 }));
