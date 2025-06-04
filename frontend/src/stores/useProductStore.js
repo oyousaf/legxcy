@@ -11,12 +11,13 @@ export const useProductStore = create((set, get) => ({
   loading: false,
 
   setProducts: (products) => set({ products }),
+  resetProducts: () => set({ products: [] }),
 
   // CREATE PRODUCT (Admin)
   createProduct: async (productData) => {
     set({ loading: true });
     try {
-      // Handle image: If base64, upload to Supabase storage and get the public URL
+      // Handle image upload if base64
       let imageUrl = productData.image;
       if (productData.image && productData.image.startsWith("data:")) {
         const { uploadImageToSupabase } = await import(
@@ -37,13 +38,12 @@ export const useProductStore = create((set, get) => ({
         .single();
 
       if (error) throw error;
-      set((prevState) => ({
-        products: [...prevState.products, data],
-        loading: false,
-      }));
       toast.success("Product created!");
+      // Refresh product list for freshest data
+      await get().fetchAllProducts();
     } catch (error) {
       toast.error(getErrorMsg(error));
+    } finally {
       set({ loading: false });
     }
   },
@@ -54,10 +54,11 @@ export const useProductStore = create((set, get) => ({
     try {
       const { data, error } = await supabase.from("products").select("*");
       if (error) throw error;
-      set({ products: data, loading: false });
+      set({ products: data });
     } catch (error) {
-      set({ loading: false });
       toast.error(getErrorMsg(error));
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -70,10 +71,11 @@ export const useProductStore = create((set, get) => ({
         .select("*")
         .eq("category", category);
       if (error) throw error;
-      set({ products: data, loading: false });
+      set({ products: data });
     } catch (error) {
-      set({ loading: false });
       toast.error(getErrorMsg(error));
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -86,14 +88,13 @@ export const useProductStore = create((set, get) => ({
         .delete()
         .eq("id", productId);
       if (error) throw error;
-      set((prev) => ({
-        products: prev.products.filter((product) => product.id !== productId),
-        loading: false,
-      }));
       toast.success("Product deleted!");
+      // Refresh product list for accuracy
+      await get().fetchAllProducts();
     } catch (error) {
-      set({ loading: false });
       toast.error(getErrorMsg(error));
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -101,7 +102,6 @@ export const useProductStore = create((set, get) => ({
   toggleFeaturedProduct: async (productId) => {
     set({ loading: true });
     try {
-      // Get current state
       const product = get().products.find((p) => p.id === productId);
       if (!product) throw new Error("Product not found");
 
@@ -113,17 +113,13 @@ export const useProductStore = create((set, get) => ({
         .single();
 
       if (error) throw error;
-
-      set((prev) => ({
-        products: prev.products.map((p) =>
-          p.id === productId ? { ...p, isFeatured: data.isFeatured } : p
-        ),
-        loading: false,
-      }));
       toast.success("Product updated!");
+      // Refresh list for consistency
+      await get().fetchAllProducts();
     } catch (error) {
-      set({ loading: false });
       toast.error(getErrorMsg(error));
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -136,10 +132,11 @@ export const useProductStore = create((set, get) => ({
         .select("*")
         .eq("isFeatured", true);
       if (error) throw error;
-      set({ products: data, loading: false });
+      set({ products: data });
     } catch (error) {
-      set({ loading: false });
       toast.error(getErrorMsg(error));
+    } finally {
+      set({ loading: false });
     }
   },
 }));

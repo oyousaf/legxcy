@@ -115,14 +115,16 @@ export const useUserStore = create((set, get) => ({
   },
 }));
 
-// Keep auth in sync even on session refresh/restore
-if (typeof window !== "undefined") {
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session?.user) {
-      useUserStore.setState({ user: session.user });
-      await useUserStore.getState().fetchProfile(session.user.id);
+if (typeof window !== "undefined" && !window.__supabaseAuthListenerAttached) {
+  window.__supabaseAuthListenerAttached = true;
+
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    const user = session?.user || null;
+    useUserStore.setState({ user });
+    if (user) {
+      await useUserStore.getState().fetchProfile(user.id);
     } else {
-      useUserStore.setState({ user: null, profile: null });
+      useUserStore.setState({ profile: null });
     }
   });
 }
