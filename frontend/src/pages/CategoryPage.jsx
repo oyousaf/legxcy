@@ -4,8 +4,10 @@ import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import ProductCard from "../components/ProductCard";
 
+const skeletons = Array(8).fill(0);
+
 const CategoryPage = () => {
-  const { fetchProductsByCategory, products } = useProductStore();
+  const { fetchProductsByCategory, products, loading } = useProductStore();
   const { category } = useParams();
 
   useEffect(() => {
@@ -30,15 +32,22 @@ const CategoryPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          {(!products || products.length === 0) && (
+          {loading ? (
+            skeletons.map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg h-64 w-full bg-gray-800 animate-pulse border border-gray-700"
+              />
+            ))
+          ) : products?.length === 0 ? (
             <h2 className="text-3xl font-semibold text-gray-300 text-center col-span-full">
               No products found
             </h2>
+          ) : (
+            products?.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))
           )}
-
-          {products?.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
         </motion.div>
       </div>
     </div>

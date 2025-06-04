@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import CategoryItem from "../components/CategoryItem";
 import { useProductStore } from "../stores/useProductStore";
 import FeaturedProducts from "../components/FeaturedProducts";
-import LoadingSpinner from "../components/LoadingSpinner";
 
 const categories = [
   { href: "/hub", name: "Hub-Drive Motor", imageUrl: "/hub.webp" },
@@ -15,10 +14,6 @@ const HomePage = () => {
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <div className="relative min-h-screen text-white overflow-hidden">
@@ -53,9 +48,16 @@ const HomePage = () => {
             <CategoryItem category={category} key={category.name} />
           ))}
         </div>
-        {products.length > 0 && (
-          <FeaturedProducts featuredProducts={products} />
-        )}
+
+        <div className="mt-12">
+          {loading ? (
+            <div className="h-96 flex items-center justify-center">
+              <div className="animate-pulse w-full h-64 bg-gray-800 rounded-lg" />
+            </div>
+          ) : products.length > 0 ? (
+            <FeaturedProducts featuredProducts={products} />
+          ) : null}
+        </div>
       </div>
     </div>
   );
