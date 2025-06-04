@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { GoTrash } from "react-icons/go";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import ConfirmModal from "./ConfirmModal";
 
 const CartItem = ({ item }) => {
+  const [showModal, setShowModal] = useState(false);
   const { removeFromCart, updateQuantity } = useCartStore();
   const { user } = useUserStore();
   const navigate = useNavigate();
@@ -19,14 +22,26 @@ const CartItem = ({ item }) => {
     action();
   };
 
+  const handleRemoveClick = () => {
+    requireAuth(() => setShowModal(true));
+  };
+
+  const handleConfirmRemove = () => {
+    requireAuth(() => removeFromCart(item.id));
+    setShowModal(false);
+  };
+
   return (
     <div className="rounded-lg border p-4 shadow-sm border-gray-700 bg-gray-800 md:p-6">
       <div className="space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0">
         <div className="shrink-0 md:order-1">
-          <img className="h-20 md:h-32 rounded object-cover" src={item.image} />
+          <img
+            className="h-20 md:h-32 rounded object-cover"
+            src={item.image}
+            alt={item.name}
+          />
         </div>
         <label className="sr-only">Choose quantity:</label>
-
         <div className="flex items-center justify-between md:order-3 md:justify-end">
           <div className="flex items-center gap-2">
             <button
@@ -51,31 +66,35 @@ const CartItem = ({ item }) => {
               <FaPlus className="text-gray-300" />
             </button>
           </div>
-
           <div className="text-end md:order-4 md:w-32">
             <p className="text-base font-bold text-emerald-400">
               £{item.price}
             </p>
           </div>
         </div>
-
         <div className="w-full min-w-0 flex-1 space-y-4 md:order-2 md:max-w-md">
           <p className="text-base font-medium text-white hover:text-emerald-400 hover:underline">
             {item.name}
           </p>
           <p className="text-sm text-gray-400">{item.description}</p>
-
           <div className="flex items-center gap-4">
             <button
               className="inline-flex items-center text-sm font-medium text-red-500
                 hover:text-red-300 hover:underline"
-              onClick={() => requireAuth(() => removeFromCart(item.id))}
+              onClick={handleRemoveClick}
             >
-              <GoTrash />
+              <GoTrash size={25} />
             </button>
           </div>
         </div>
       </div>
+      {/* Modal sits outside .flex for proper overlay */}
+      <ConfirmModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleConfirmRemove}
+        itemName={item.name}
+      />
     </div>
   );
 };
