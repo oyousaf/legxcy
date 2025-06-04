@@ -141,16 +141,34 @@ export const useCartStore = create((set, get) => ({
     try {
       const { user } = useUserStore.getState();
       if (user) {
-        const { error } = await supabase.from("cart_items").upsert(
-          {
+        // 1. Check if item exists
+        const { data: existing, error: fetchError } = await supabase
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("userId", user.id)
+          .eq("productId", product.id)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
+
+        if (existing) {
+          // 2. Exists: increment quantity
+          const { error } = await supabase
+            .from("cart_items")
+            .update({ quantity: existing.quantity + 1 })
+            .eq("id", existing.id);
+          if (error) throw error;
+        } else {
+          // 3. Not exists: insert
+          const { error } = await supabase.from("cart_items").insert({
             userId: user.id,
             productId: product.id,
             quantity: 1,
-          },
-          { onConflict: ["userId", "productId"] }
-        );
-        if (error) throw error;
-        // Refetch cart from DB for accuracy
+          });
+          if (error) throw error;
+        }
+
+        // Refetch cart for accuracy
         await get().getCartItems();
         toast.success("Product added to cart");
       }
