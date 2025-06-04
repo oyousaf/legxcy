@@ -6,7 +6,7 @@ export const useUserStore = create((set, get) => ({
   user: null,
   profile: null,
   loading: false,
-  checkingAuth: false,
+  checkingAuth: true,
 
   signup: async ({ name, email, password, confirmPassword }) => {
     set({ loading: true });
