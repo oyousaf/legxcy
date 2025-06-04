@@ -10,7 +10,6 @@ import CreateProductForm from "../components/CreateProductForm";
 import ProductsList from "../components/ProductsList";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
-import LoadingSpinner from "../components/LoadingSpinner";
 
 const tabs = [
   { id: "create", label: "Create Product", icon: FaPlusCircle },
@@ -18,30 +17,24 @@ const tabs = [
   { id: "analytics", label: "Analytics", icon: MdBarChart },
 ];
 
+const skeletonClass = "animate-pulse bg-gray-700 rounded-lg h-20 mb-4 w-full";
+
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("create");
   const { fetchAllProducts } = useProductStore();
   const { user, profile, checkingAuth } = useUserStore();
   const navigate = useNavigate();
 
-  // Fetch all products on mount (once)
   useEffect(() => {
     fetchAllProducts();
   }, [fetchAllProducts]);
 
-  // Only allow admins after auth/profile have loaded
   useEffect(() => {
     if (!checkingAuth && (!user || profile?.role !== "admin")) {
       navigate("/", { replace: true });
     }
   }, [checkingAuth, user, profile, navigate]);
 
-  // Show loading spinner while waiting for auth/profile to load
-  if (checkingAuth || !user || !profile) {
-    return <LoadingSpinner />;
-  }
-
-  // Render dashboard if admin
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="relative z-10 container mx-auto px-4 py-16">
@@ -64,15 +57,27 @@ const AdminPage = () => {
                   ? "bg-emerald-600 text-white"
                   : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
+              disabled={checkingAuth || !user || !profile}
             >
               <tab.icon className="mr-2 h-5 w-5" />
               {tab.label}
             </button>
           ))}
         </div>
-        {activeTab === "create" && <CreateProductForm />}
-        {activeTab === "products" && <ProductsList />}
-        {activeTab === "analytics" && <AnalyticsTab />}
+
+        {checkingAuth || !user || !profile ? (
+          <div>
+            <div className={skeletonClass} />
+            <div className={skeletonClass} />
+            <div className={skeletonClass} />
+          </div>
+        ) : (
+          <>
+            {activeTab === "create" && <CreateProductForm />}
+            {activeTab === "products" && <ProductsList />}
+            {activeTab === "analytics" && <AnalyticsTab />}
+          </>
+        )}
       </div>
     </div>
   );
