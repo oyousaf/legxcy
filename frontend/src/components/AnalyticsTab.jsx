@@ -22,7 +22,6 @@ const skeletonClass =
 
 const AnalyticsTab = () => {
   const { user, profile } = useUserStore();
-  // Loading state per section
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingChart, setLoadingChart] = useState(true);
 
@@ -85,12 +84,12 @@ const AnalyticsTab = () => {
       try {
         const { data: orders } = await supabase
           .from("orders")
-          .select("totalAmount,created_at");
+          .select("totalAmount,createdAt");
 
         const dailyMap = {};
         if (orders) {
           orders.forEach((o) => {
-            const day = o.created_at?.split("T")[0];
+            const day = o.createdAt?.split("T")[0];
             if (!dailyMap[day]) {
               dailyMap[day] = { name: day, sales: 0, revenue: 0 };
             }
