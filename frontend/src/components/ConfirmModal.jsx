@@ -3,12 +3,10 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => {
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="rounded-xl bg-gray-800 p-6 shadow-lg w-80">
-        <h2 className="text-lg font-semibold text-white mb-2">
-          Remove item from cart?
+        <h2 className="text-lg text-white mb-2 text-center">
+          Are you sure you want to remove{" "}
+          <span className="font-bold">{itemName}</span> from your cart?
         </h2>
-        <p className="text-gray-300 mb-6">
-          Are you sure you want to remove <span className="font-bold">{itemName}</span> from your cart?
-        </p>
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
