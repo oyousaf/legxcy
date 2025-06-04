@@ -32,7 +32,7 @@ const CartItem = ({ item }) => {
   };
 
   return (
-    <div className="rounded-lg border p-4 shadow-sm border-gray-700 bg-gray-800 md:p-6">
+    <div className="rounded-lg border p-4 shadow-sm border-gray-700 bg-gray-800 md:p-6 relative">
       <div className="space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0">
         <div className="shrink-0 md:order-1">
           <img
@@ -88,7 +88,6 @@ const CartItem = ({ item }) => {
           </div>
         </div>
       </div>
-      {/* Modal sits outside .flex for proper overlay */}
       <ConfirmModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
