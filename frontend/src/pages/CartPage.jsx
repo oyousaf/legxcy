@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCartStore } from "../stores/useCartStore";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { FaCartShopping } from "react-icons/fa6";
 import CartItem from "../components/CartItem";
 import PeopleAlsoBought from "../components/PeopleAlsoBought";
@@ -23,11 +23,13 @@ const CartPage = () => {
             {cart.length === 0 ? (
               <EmptyCartUI />
             ) : (
-              <div className="space-y-6">
-                {cart.map((item) => (
-                  <CartItem key={item.id} item={item} />
-                ))}
-              </div>
+              <AnimatePresence>
+                <div className="space-y-6">
+                  {cart.map((item) => (
+                    <CartItem key={item.id} item={item} />
+                  ))}
+                </div>
+              </AnimatePresence>
             )}
             {cart.length > 0 && <PeopleAlsoBought />}
           </motion.div>

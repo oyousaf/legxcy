@@ -36,9 +36,10 @@ const CartItem = ({ item }) => {
     <motion.div
       className="relative rounded-lg border p-4 shadow-sm border-emerald-700 bg-emerald-800 md:p-6"
       initial={{ opacity: 0, y: 24, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 24, scale: 0.98 }}
-      transition={{ type: "spring", duration: 0.6, bounce: 0.24 }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      exit={{ opacity: 0, scale: 0.97, filter: "blur(8px)" }}
+      transition={{ duration: 0.45, ease: [0.4, 0.12, 0.3, 1] }}
+      layout
     >
       <div className="space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0">
         <div className="shrink-0 md:order-1">
