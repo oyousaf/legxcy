@@ -9,10 +9,8 @@ const LoadingSpinner = () => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        {/* Outer spinner */}
         <div className="w-20 h-20 border-2 border-emerald-200 rounded-full" />
         <div className="w-20 h-20 border-t-4 border-emerald-500 animate-spin rounded-full absolute left-0 top-0" />
-        {/* Pulsing dot in the center */}
         <motion.div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-400 rounded-full"
           style={{ width: 18, height: 18 }}

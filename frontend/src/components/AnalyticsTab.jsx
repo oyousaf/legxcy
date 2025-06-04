@@ -17,15 +17,21 @@ import { supabase } from "../lib/supabase";
 import LoadingSpinner from "./LoadingSpinner";
 import { useUserStore } from "../stores/useUserStore";
 
+const skeletonClass =
+  "animate-pulse bg-gray-700 rounded-lg h-14 sm:h-16 mb-4 w-full";
+
 const AnalyticsTab = () => {
   const { user, profile } = useUserStore();
+  // Loading state per section
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingChart, setLoadingChart] = useState(true);
+
   const [analyticsData, setAnalyticsData] = useState({
     users: 0,
     products: 0,
     totalSales: 0,
     totalRevenue: 0,
   });
-  const [isLoading, setIsLoading] = useState(true);
   const [dailySalesData, setDailySalesData] = useState([]);
 
   // Only admins can see analytics
@@ -38,8 +44,8 @@ const AnalyticsTab = () => {
   }
 
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      setIsLoading(true);
+    const fetchStats = async () => {
+      setLoadingStats(true);
       try {
         // Total users
         const { count: users } = await supabase
@@ -51,19 +57,36 @@ const AnalyticsTab = () => {
           .from("products")
           .select("*", { count: "exact", head: true });
 
-        // Orders table must have total amount and created_at
-        const { data: orders, error } = await supabase
+        // Orders for total sales and revenue
+        const { data: orders } = await supabase
           .from("orders")
-          .select("totalAmount,created_at");
+          .select("totalAmount");
 
-        // Total sales (number of orders)
         const totalSales = orders ? orders.length : 0;
-        // Total revenue (sum)
         const totalRevenue = orders
           ? orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
           : 0;
 
-        // Generate daily sales/revenue for chart
+        setAnalyticsData({
+          users: users ?? 0,
+          products: products ?? 0,
+          totalSales,
+          totalRevenue,
+        });
+      } catch (error) {
+        console.error("Error fetching analytics stats:", error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    const fetchChart = async () => {
+      setLoadingChart(true);
+      try {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("totalAmount,created_at");
+
         const dailyMap = {};
         if (orders) {
           orders.forEach((o) => {
@@ -78,88 +101,98 @@ const AnalyticsTab = () => {
         const dailySalesData = Object.values(dailyMap).sort(
           (a, b) => new Date(a.name) - new Date(b.name)
         );
-
-        setAnalyticsData({
-          users: users ?? 0,
-          products: products ?? 0,
-          totalSales,
-          totalRevenue,
-        });
         setDailySalesData(dailySalesData);
       } catch (error) {
-        console.error("Error fetching analytics data:", error);
+        console.error("Error fetching analytics chart:", error);
       } finally {
-        setIsLoading(false);
+        setLoadingChart(false);
       }
     };
 
-    fetchAnalyticsData();
+    fetchStats();
+    fetchChart();
   }, []);
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <AnalyticsCard
-          title="Total Users"
-          value={analyticsData.users.toLocaleString()}
-          icon={FaUsers}
-          color="from-emerald-500 to-teal-700"
-        />
-        <AnalyticsCard
-          title="Total Products"
-          value={analyticsData.products.toLocaleString()}
-          icon={FiPackage}
-          color="from-emerald-500 to-green-700"
-        />
-        <AnalyticsCard
-          title="Total Sales"
-          value={analyticsData.totalSales.toLocaleString()}
-          icon={FaCartShopping}
-          color="from-emerald-500 to-cyan-700"
-        />
-        <AnalyticsCard
-          title="Total Revenue"
-          value={`£${analyticsData.totalRevenue.toLocaleString()}`}
-          icon={FaPoundSign}
-          color="from-emerald-500 to-lime-700"
-        />
+        {loadingStats ? (
+          <>
+            <div className={skeletonClass} />
+            <div className={skeletonClass} />
+            <div className={skeletonClass} />
+            <div className={skeletonClass} />
+          </>
+        ) : (
+          <>
+            <AnalyticsCard
+              title="Total Users"
+              value={analyticsData.users.toLocaleString()}
+              icon={FaUsers}
+              color="from-emerald-500 to-teal-700"
+            />
+            <AnalyticsCard
+              title="Total Products"
+              value={analyticsData.products.toLocaleString()}
+              icon={FiPackage}
+              color="from-emerald-500 to-green-700"
+            />
+            <AnalyticsCard
+              title="Total Sales"
+              value={analyticsData.totalSales.toLocaleString()}
+              icon={FaCartShopping}
+              color="from-emerald-500 to-cyan-700"
+            />
+            <AnalyticsCard
+              title="Total Revenue"
+              value={`£${analyticsData.totalRevenue.toLocaleString()}`}
+              icon={FaPoundSign}
+              color="from-emerald-500 to-lime-700"
+            />
+          </>
+        )}
       </div>
+
+      {/* Chart */}
       <motion.div
-        className="bg-gray-800/60 rounded-lg p-6 shadow-lg"
+        className="bg-gray-800/60 rounded-lg p-6 shadow-lg min-h-[420px]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.25 }}
       >
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={dailySalesData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" stroke="#D1D5DB" />
-            <YAxis yAxisId="left" stroke="#D1D5DB" />
-            <YAxis yAxisId="right" orientation="right" stroke="#D1D5DB" />
-            <Tooltip />
-            <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="sales"
-              stroke="#10B981"
-              activeDot={{ r: 8 }}
-              name="Sales"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="revenue"
-              stroke="#3B82F6"
-              activeDot={{ r: 8 }}
-              name="Revenue"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {loadingChart ? (
+          <div className="flex items-center justify-center h-96">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={dailySalesData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" stroke="#D1D5DB" />
+              <YAxis yAxisId="left" stroke="#D1D5DB" />
+              <YAxis yAxisId="right" orientation="right" stroke="#D1D5DB" />
+              <Tooltip />
+              <Legend />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="sales"
+                stroke="#10B981"
+                activeDot={{ r: 8 }}
+                name="Sales"
+              />
+              <Line
+                yAxisId="right"
+                type="monotone"
+                dataKey="revenue"
+                stroke="#3B82F6"
+                activeDot={{ r: 8 }}
+                name="Revenue"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </motion.div>
     </div>
   );
