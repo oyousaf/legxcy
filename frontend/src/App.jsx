@@ -15,12 +15,29 @@ import { useCartStore } from "./stores/useCartStore";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 
+import { supabase } from "./lib/supabase";
+
 function App() {
   const { user, checkAuth, checkingAuth } = useUserStore();
   const { getCartItems } = useCartStore();
 
   useEffect(() => {
     checkAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          useUserStore.setState({ user: session.user });
+          useUserStore.getState().fetchProfile(session.user.id);
+        } else {
+          useUserStore.setState({ user: null, profile: null });
+        }
+      }
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [checkAuth]);
 
   useEffect(() => {

@@ -114,17 +114,3 @@ export const useUserStore = create((set, get) => ({
     }
   },
 }));
-
-if (typeof window !== "undefined" && !window.__supabaseAuthListenerAttached) {
-  window.__supabaseAuthListenerAttached = true;
-
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    const user = session?.user || null;
-    useUserStore.setState({ user });
-    if (user) {
-      await useUserStore.getState().fetchProfile(user.id);
-    } else {
-      useUserStore.setState({ profile: null });
-    }
-  });
-}
