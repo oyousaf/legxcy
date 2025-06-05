@@ -10,26 +10,23 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: "Invalid or empty products array" });
     }
 
-    let totalAmount = 0;
-
-    const lineItems = products.map((product) => {
-      const amount = Math.round(product.price * 100);
-      totalAmount += amount * product.quantity;
-
-      return {
-        price_data: {
-          currency: "gbp",
-          product_data: { name: product.name, images: [product.image] },
-          unit_amount: amount,
+    // Prepare Stripe line items
+    const lineItems = products.map((product) => ({
+      price_data: {
+        currency: "gbp",
+        product_data: {
+          name: product.name,
+          images: [product.image],
         },
-        quantity: product.quantity || 1,
-      };
-    });
+        unit_amount: Math.round(product.price * 100),
+      },
+      quantity: product.quantity || 1,
+    }));
 
-    // Query coupon from Supabase
-    let coupon = null;
+    // Coupon logic
+    let stripeCouponId = null;
     if (couponCode) {
-      const { data, error } = await supabase
+      const { data: coupon, error } = await supabase
         .from("coupons")
         .select("*")
         .eq("code", couponCode)
@@ -37,23 +34,23 @@ export const createCheckoutSession = async (req, res) => {
         .eq("is_active", true)
         .single();
 
-      if (data) {
-        coupon = data;
-        totalAmount -= Math.round(
-          (totalAmount * coupon.discount_percentage) / 100
-        );
+      if (coupon && coupon.discount_percentage) {
+        const stripeCoupon = await stripe.coupons.create({
+          percent_off: coupon.discount_percentage,
+          duration: "once",
+        });
+        stripeCouponId = stripeCoupon.id;
       }
     }
 
+    // Create Stripe session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
       success_url: `${process.env.CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/purchase-cancel`,
-      discounts: coupon
-        ? [{ coupon: await createStripeCoupon(coupon.discount_percentage) }]
-        : [],
+      discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : [],
       metadata: {
         userId,
         couponCode: couponCode || "",
@@ -67,7 +64,7 @@ export const createCheckoutSession = async (req, res) => {
       },
     });
 
-    res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
+    return res.status(200).json({ id: session.id });
   } catch (error) {
     console.error("Error processing checkout:", error);
     res
@@ -76,6 +73,53 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.rawBody,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Webhook error:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const { userId, couponCode, products } = session.metadata;
+
+    // Deactivate coupon if used
+    if (couponCode) {
+      await supabase
+        .from("coupons")
+        .update({ is_active: false })
+        .eq("code", couponCode)
+        .eq("user_id", userId);
+    }
+
+    // Create order in Supabase
+    const { error: orderError } = await supabase.from("orders").insert([
+      {
+        user_id: userId,
+        products,
+        total_amount: session.amount_total / 100,
+        stripe_session_id: session.id,
+        created_at: new Date(),
+      },
+    ]);
+    if (orderError) {
+      console.error("Error creating order:", orderError.message);
+    }
+  }
+
+  res.status(200).json({ received: true });
+};
+
+// Optionally, a legacy/manual purchase success endpoint (not needed if using webhook)
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
@@ -86,31 +130,37 @@ export const checkoutSuccess = async (req, res) => {
       if (session.metadata.couponCode) {
         await supabase
           .from("coupons")
-          .update({ is_active: false })
+          .update({ isActive: false })
           .eq("code", session.metadata.couponCode)
-          .eq("user_id", session.metadata.userId);
+          .eq("userId", session.metadata.userId);
       }
 
-      // Create new order in Supabase
+      // Parse products from metadata
       const products = JSON.parse(session.metadata.products);
-      const { error: orderError } = await supabase.from("orders").insert([
-        {
-          user_id: session.metadata.userId,
-          products: JSON.stringify(products), // Or a related table if normalized
-          total_amount: session.amount_total / 100,
-          stripe_session_id: sessionId,
-          created_at: new Date(),
-        },
-      ]);
+
+      // Insert order into orders table ONLY (products as JSON)
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            userId: session.metadata.userId,
+            products: JSON.stringify(products),
+            totalAmount: session.amount_total / 100,
+            stripeSessionId: sessionId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
       if (orderError) throw orderError;
 
       res.status(200).json({
         success: true,
         message:
           "Payment successful, order created, and coupon deactivated if used.",
+        orderId: order.id,
       });
-    } else {
-      res.status(400).json({ message: "Payment not completed." });
     }
   } catch (error) {
     console.error("Error processing successful checkout:", error);
@@ -121,30 +171,3 @@ export const checkoutSuccess = async (req, res) => {
   }
 };
 
-async function createStripeCoupon(discountPercentage) {
-  const coupon = await stripe.coupons.create({
-    percent_off: discountPercentage,
-    duration: "once",
-  });
-  return coupon.id;
-}
-
-export async function createNewCoupon(userId) {
-  // Delete old coupon
-  await supabase.from("coupons").delete().eq("user_id", userId);
-
-  // Create new coupon
-  const newCouponCode =
-    "GIFT" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  const { error } = await supabase.from("coupons").insert([
-    {
-      code: newCouponCode,
-      discount_percentage: 10,
-      expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      user_id: userId,
-      is_active: true,
-    },
-  ]);
-  if (error) throw error;
-  return newCouponCode;
-}

@@ -4,6 +4,7 @@ import { PiHandHeartBold } from "react-icons/pi";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCartStore } from "../stores/useCartStore";
+import { supabase } from "../lib/supabase";
 import Confetti from "react-confetti";
 
 const PurchaseSuccessPage = () => {
@@ -26,9 +27,16 @@ const PurchaseSuccessPage = () => {
   useEffect(() => {
     const handleCheckoutSuccess = async (sessionId) => {
       try {
+        // Always fetch a fresh token from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
         const res = await fetch("/api/payments/checkout-success", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }), // Only send if exists
+          },
           body: JSON.stringify({ sessionId }),
         });
         if (!res.ok) throw new Error("Payment processing failed");
@@ -42,9 +50,7 @@ const PurchaseSuccessPage = () => {
       }
     };
 
-    const sessionId = new URLSearchParams(window.location.search).get(
-      "session_id"
-    );
+    const sessionId = new URLSearchParams(window.location.search).get("session_id");
     if (sessionId) {
       handleCheckoutSuccess(sessionId);
     } else {
@@ -88,8 +94,7 @@ const PurchaseSuccessPage = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Order number</span>
               <span className="text-sm font-semibold text-emerald-400">
-                {/* If you want a real order number, display it here */}#
-                {orderNumber ? orderNumber : "12345"}
+                #{orderNumber ? orderNumber : "12345"}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -122,4 +127,5 @@ const PurchaseSuccessPage = () => {
     </div>
   );
 };
+
 export default PurchaseSuccessPage;

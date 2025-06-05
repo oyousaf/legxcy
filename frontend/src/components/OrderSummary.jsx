@@ -6,6 +6,7 @@ import { LuMoveRight } from "react-icons/lu";
 import { loadStripe } from "@stripe/stripe-js";
 import { supabase } from "../lib/supabase";
 import { toast } from "react-hot-toast";
+import { useState } from "react";
 
 const stripePromise = loadStripe(
   "pk_test_51Nlrp0A9BSuAkHfX3E7SUPOcMzmJuMkku6WWMsa9wydvFQ685G8Q4KXYtHorBXCV6geXrFKjZPuzuAeNBQVtcsOR001WipQOgF"
@@ -15,6 +16,7 @@ const OrderSummary = () => {
   const { total, subtotal, coupon, isCouponApplied, cart } = useCartStore();
   const { user, checkingAuth } = useUserStore();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const savings = subtotal - total;
   const formattedSubtotal = subtotal.toFixed(2);
@@ -22,9 +24,12 @@ const OrderSummary = () => {
   const formattedSavings = savings.toFixed(2);
 
   const handlePayment = async () => {
+    if (loading) return;
+    setLoading(true); // Prevent duplicate clicks
     if (!user) {
       toast.error("Please log in to proceed to checkout.");
       navigate("/login");
+      setLoading(false);
       return;
     }
     const stripe = await stripePromise;
@@ -48,6 +53,13 @@ const OrderSummary = () => {
         }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData.message || "Failed to start checkout.");
+        setLoading(false);
+        return;
+      }
+
       const sessionData = await res.json();
 
       if (sessionData.id) {
@@ -63,6 +75,8 @@ const OrderSummary = () => {
       }
     } catch (err) {
       toast.error("Checkout failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,9 +132,13 @@ const OrderSummary = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handlePayment}
-          disabled={!user || checkingAuth}
+          disabled={!user || checkingAuth || loading}
         >
-          {checkingAuth ? "Checking user..." : "Proceed to Checkout"}
+          {checkingAuth
+            ? "Checking user..."
+            : loading
+            ? "Processing..."
+            : "Proceed to Checkout"}
         </motion.button>
 
         {!user && (
