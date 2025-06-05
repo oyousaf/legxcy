@@ -60,8 +60,8 @@ const ProductsList = () => {
     useProductStore();
   const { profile } = useUserStore();
   const [filter, setFilter] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
-  const [editing, setEditing] = useState(null); // id of editing product
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [editValues, setEditValues] = useState({
     name: "",
     category: "",
@@ -286,7 +286,6 @@ const ProductsList = () => {
                       )}
                     </div>
                   </div>
-                  {/* Add top padding so content never overlaps icons */}
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-14 px-4 pb-6">
                     <img
                       src={product.image}
@@ -330,8 +329,8 @@ const ProductsList = () => {
                             required
                           >
                             <option value="">Select category</option>
-                            <option value="hub">Hub-Drive Motor</option>
-                            <option value="mid">Mid-Drive Motor</option>
+                            <option value="hub">Hub-Drive</option>
+                            <option value="mid">Mid-Drive</option>
                           </select>
                           <input
                             className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
