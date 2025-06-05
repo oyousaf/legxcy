@@ -25,24 +25,28 @@ const PurchaseSuccessPage = () => {
   }, []);
 
   useEffect(() => {
-    const handleCheckoutSuccess = async (sessionId) => {
+    const fetchOrder = async (sessionId) => {
       try {
-        // Always fetch a fresh token from Supabase
-        const { data: { session } } = await supabase.auth.getSession();
+        // Get the current Supabase session for the access token
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         const token = session?.access_token;
 
         const res = await fetch("/api/payments/checkout-success", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }), // Only send if exists
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({ sessionId }),
         });
-        if (!res.ok) throw new Error("Payment processing failed");
         const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "Checkout processing failed");
+        }
         clearCart();
-        setOrderNumber(data.orderNumber || null);
+        setOrderNumber(data.orderId || null);
       } catch (err) {
         setError(err.message || "Checkout processing failed");
       } finally {
@@ -50,9 +54,11 @@ const PurchaseSuccessPage = () => {
       }
     };
 
-    const sessionId = new URLSearchParams(window.location.search).get("session_id");
+    const sessionId = new URLSearchParams(window.location.search).get(
+      "session_id"
+    );
     if (sessionId) {
-      handleCheckoutSuccess(sessionId);
+      fetchOrder(sessionId);
     } else {
       setIsProcessing(false);
       setError("No session ID found in the URL");
@@ -60,7 +66,11 @@ const PurchaseSuccessPage = () => {
   }, [clearCart]);
 
   if (isProcessing)
-    return <div className="text-white text-lg text-center">Processing...</div>;
+    return (
+      <div className="text-white text-lg text-center">
+        Processing your order…
+      </div>
+    );
   if (error)
     return <div className="text-red-400 text-center py-10">Error: {error}</div>;
 

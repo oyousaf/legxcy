@@ -11,7 +11,6 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: "Invalid or empty products array" });
     }
 
-    // Prepare Stripe line items
     const lineItems = products.map((product) => ({
       price_data: {
         currency: "gbp",
@@ -27,12 +26,12 @@ export const createCheckoutSession = async (req, res) => {
     // Coupon logic
     let stripeCouponId = null;
     if (couponCode) {
-      const { data: coupon, error } = await supabase
+      const { data: coupon } = await supabase
         .from("coupons")
         .select("*")
         .eq("code", couponCode)
-        .eq("user_id", userId)
-        .eq("is_active", true)
+        .eq("userId", userId)
+        .eq("isActive", true)
         .single();
 
       if (coupon && coupon.discount_percentage) {
@@ -44,7 +43,6 @@ export const createCheckoutSession = async (req, res) => {
       }
     }
 
-    // Create Stripe session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -74,85 +72,70 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
-// STRIPE WEBHOOK
-export const stripeWebhook = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.rawBody,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error("Webhook error:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const { userId, couponCode, products } = session.metadata;
-
-    const { data: existingOrder } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("stripe_session_id", session.id)
-      .maybeSingle();
-
-    if (!existingOrder) {
-      // Deactivate coupon if used
-      if (couponCode) {
-        await supabase
-          .from("coupons")
-          .update({ is_active: false })
-          .eq("code", couponCode)
-          .eq("user_id", userId);
-      }
-
-      // Create order in Supabase
-      const { error: orderError } = await supabase.from("orders").insert([
-        {
-          user_id: userId,
-          products,
-          total_amount: session.amount_total / 100,
-          stripe_session_id: session.id,
-          created_at: new Date(),
-        },
-      ]);
-      if (orderError) {
-        console.error("Error creating order:", orderError.message);
-      }
-    }
-  }
-
-  res.status(200).json({ received: true });
-};
-
+// CHECKOUT SUCCESS
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
-    const { data: order } = await supabase
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== "paid") {
+      return res.status(400).json({ message: "Payment not completed." });
+    }
+
+    // Check for existing order to avoid duplicates
+    const { data: existingOrder } = await supabase
       .from("orders")
       .select("*")
-      .eq("stripe_session_id", sessionId)
+      .eq("stripeSessionId", sessionId)
       .maybeSingle();
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order is still processing. Please wait.",
+    if (existingOrder) {
+      return res.status(200).json({
+        success: true,
+        message: "Order already exists.",
+        orderId: existingOrder.id,
       });
     }
 
+    // Deactivate coupon if used
+    if (session.metadata.couponCode) {
+      await supabase
+        .from("coupons")
+        .update({ isActive: false })
+        .eq("code", session.metadata.couponCode)
+        .eq("userId", session.metadata.userId);
+    }
+
+    // Parse products from metadata
+    const products = JSON.parse(session.metadata.products);
+
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert([
+        {
+          userId: session.metadata.userId,
+          products: JSON.stringify(products),
+          totalAmount: session.amount_total / 100,
+          stripeSessionId: sessionId,
+          createdAt: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+    if (orderError) throw orderError;
+
     res.status(200).json({
       success: true,
+      message:
+        "Payment successful, order created, and coupon deactivated if used.",
       orderId: order.id,
-      message: "Order found!",
     });
   } catch (error) {
+    console.error("Error processing successful checkout:", error);
     res.status(500).json({
-      message: "Error fetching order",
+      message: "Error processing successful checkout",
       error: error.message,
     });
   }
