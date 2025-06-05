@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase.js";
 import { stripe } from "../lib/stripe.js";
 
+// CREATE CHECKOUT SESSION
 export const createCheckoutSession = async (req, res) => {
   try {
     const { products, couponCode } = req.body;
@@ -73,6 +74,7 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
+// STRIPE WEBHOOK
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
@@ -92,82 +94,66 @@ export const stripeWebhook = async (req, res) => {
     const session = event.data.object;
     const { userId, couponCode, products } = session.metadata;
 
-    // Deactivate coupon if used
-    if (couponCode) {
-      await supabase
-        .from("coupons")
-        .update({ is_active: false })
-        .eq("code", couponCode)
-        .eq("user_id", userId);
-    }
+    const { data: existingOrder } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("stripe_session_id", session.id)
+      .maybeSingle();
 
-    // Create order in Supabase
-    const { error: orderError } = await supabase.from("orders").insert([
-      {
-        user_id: userId,
-        products,
-        total_amount: session.amount_total / 100,
-        stripe_session_id: session.id,
-        created_at: new Date(),
-      },
-    ]);
-    if (orderError) {
-      console.error("Error creating order:", orderError.message);
+    if (!existingOrder) {
+      // Deactivate coupon if used
+      if (couponCode) {
+        await supabase
+          .from("coupons")
+          .update({ is_active: false })
+          .eq("code", couponCode)
+          .eq("user_id", userId);
+      }
+
+      // Create order in Supabase
+      const { error: orderError } = await supabase.from("orders").insert([
+        {
+          user_id: userId,
+          products,
+          total_amount: session.amount_total / 100,
+          stripe_session_id: session.id,
+          created_at: new Date(),
+        },
+      ]);
+      if (orderError) {
+        console.error("Error creating order:", orderError.message);
+      }
     }
   }
 
   res.status(200).json({ received: true });
 };
 
-// Optionally, a legacy/manual purchase success endpoint (not needed if using webhook)
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const { data: order } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("stripe_session_id", sessionId)
+      .maybeSingle();
 
-    if (session.payment_status === "paid") {
-      // Deactivate coupon if used
-      if (session.metadata.couponCode) {
-        await supabase
-          .from("coupons")
-          .update({ isActive: false })
-          .eq("code", session.metadata.couponCode)
-          .eq("userId", session.metadata.userId);
-      }
-
-      // Parse products from metadata
-      const products = JSON.parse(session.metadata.products);
-
-      // Insert order into orders table ONLY (products as JSON)
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert([
-          {
-            userId: session.metadata.userId,
-            products: JSON.stringify(products),
-            totalAmount: session.amount_total / 100,
-            stripeSessionId: sessionId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single();
-      if (orderError) throw orderError;
-
-      res.status(200).json({
-        success: true,
-        message:
-          "Payment successful, order created, and coupon deactivated if used.",
-        orderId: order.id,
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order is still processing. Please wait.",
       });
     }
+
+    res.status(200).json({
+      success: true,
+      orderId: order.id,
+      message: "Order found!",
+    });
   } catch (error) {
-    console.error("Error processing successful checkout:", error);
     res.status(500).json({
-      message: "Error processing successful checkout",
+      message: "Error fetching order",
       error: error.message,
     });
   }
 };
-
