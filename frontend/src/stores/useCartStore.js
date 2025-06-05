@@ -147,7 +147,7 @@ export const useCartStore = create((set, get) => ({
           .select("id, quantity")
           .eq("userId", user.id)
           .eq("productId", product.id)
-          .single();
+          .maybeSingle();
 
         if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
 
