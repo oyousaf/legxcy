@@ -14,13 +14,13 @@ const ProductsList = () => {
 
   return (
     <motion.div
-      className="bg-gray-800 shadow-lg rounded-lg overflow-hidden max-w-4xl mx-auto"
+      className="bg-emerald-800 shadow-lg rounded-lg overflow-hidden max-w-4xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <table className="min-w-full divide-y divide-gray-700">
-        <thead className="bg-gray-700">
+      <table className="min-w-full divide-y divide-emerald-700">
+        <thead className="bg-emerald-700">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
               Product
@@ -40,9 +40,12 @@ const ProductsList = () => {
           </tr>
         </thead>
 
-        <tbody className="bg-gray-800 divide-y divide-gray-700">
+        <tbody className="bg-emerald-800 divide-y divide-emerald-700">
           {products?.map((product) => (
-            <tr key={product.id || product._id} className="hover:bg-gray-700">
+            <tr
+              key={product.id || product._id}
+              className="hover:bg-emerald-700"
+            >
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
@@ -60,12 +63,14 @@ const ProductsList = () => {
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-300">
+                <div className="text-sm text-emerald-300">
                   £{Number(product.price).toFixed(2)}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-300">{product.category}</div>
+                <div className="text-sm text-emerald-300">
+                  {product.category}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <button
@@ -78,8 +83,8 @@ const ProductsList = () => {
                   }}
                   className={`p-1 rounded-full ${
                     product.isFeatured
-                      ? "bg-yellow-400 text-gray-900"
-                      : "bg-gray-600 text-gray-300"
+                      ? "bg-yellow-400 text-emerald-900"
+                      : "bg-emerald-600 text-emerald-300"
                   } hover:bg-yellow-500 transition-colors duration-200`}
                   disabled={!isAdmin}
                   title={

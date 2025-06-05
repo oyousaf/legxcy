@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { FaPlusCircle } from "react-icons/fa";
 import { IoMdCloudUpload } from "react-icons/io";
 import { LuLoader } from "react-icons/lu";
+import { toast } from "react-hot-toast";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -10,6 +11,8 @@ const categories = ["hub", "mid"];
 
 const CreateProductForm = () => {
   const { user, profile } = useUserStore();
+  const { createProduct, loading } = useProductStore();
+
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -18,9 +21,6 @@ const CreateProductForm = () => {
     image: "",
   });
 
-  const { createProduct, loading } = useProductStore();
-
-  // Only admins can use this form
   if (!user || profile?.role !== "admin") {
     return (
       <div className="text-center p-4 text-red-600 font-bold">
@@ -29,10 +29,38 @@ const CreateProductForm = () => {
     );
   }
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setNewProduct((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProduct((prev) => ({ ...prev, image: reader.result }));
+        toast.success("Image uploaded!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (
+      !newProduct.name.trim() ||
+      !newProduct.description.trim() ||
+      !newProduct.price ||
+      !newProduct.category ||
+      !newProduct.image
+    ) {
+      toast.error("All fields are required.");
+      return;
+    }
     try {
       await createProduct(newProduct);
+      toast.success("Product created!");
       setNewProduct({
         name: "",
         description: "",
@@ -40,36 +68,23 @@ const CreateProductForm = () => {
         category: "",
         image: "",
       });
-    } catch {
-      console.log("error creating a product");
-    }
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onloadend = () => {
-        setNewProduct({ ...newProduct, image: reader.result });
-      };
-
-      reader.readAsDataURL(file); // base64
+    } catch (err) {
+      toast.error("Error creating a product.");
     }
   };
 
   return (
     <motion.div
-      className="bg-gray-800 shadow-lg rounded-lg p-8 mb-8 max-w-xl mx-auto"
+      className="bg-emerald-800 shadow-lg rounded-lg p-8 mb-8 max-w-xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <h2 className="text-2xl font-semibold mb-6 text-emerald-300">
+      <h2 className="text-2xl font-semibold mb-6 text-gray-300">
         Create New Product
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <div>
           <label
             htmlFor="name"
@@ -82,11 +97,10 @@ const CreateProductForm = () => {
             id="name"
             name="name"
             value={newProduct.name}
-            onChange={(e) =>
-              setNewProduct({ ...newProduct, name: e.target.value })
-            }
-            className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2
-             px-3 text-white focus:outline-none focus:ring-2
+            onChange={handleChange}
+            autoComplete="off"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm py-2
+            px-3 text-white focus:outline-none focus:ring-2
             focus:ring-emerald-500 focus:border-emerald-500"
             required
           />
@@ -103,13 +117,12 @@ const CreateProductForm = () => {
             id="description"
             name="description"
             value={newProduct.description}
-            onChange={(e) =>
-              setNewProduct({ ...newProduct, description: e.target.value })
-            }
+            onChange={handleChange}
             rows="3"
-            className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm
-             py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 
-             focus:border-emerald-500"
+            autoComplete="off"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm
+            py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 
+            focus:border-emerald-500"
             required
           />
         </div>
@@ -126,13 +139,13 @@ const CreateProductForm = () => {
             id="price"
             name="price"
             value={newProduct.price}
-            onChange={(e) =>
-              setNewProduct({ ...newProduct, price: e.target.value })
-            }
+            onChange={handleChange}
             step="0.01"
-            className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm 
+            min="0"
+            autoComplete="off"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm 
             py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500
-             focus:border-emerald-500"
+            focus:border-emerald-500"
             required
           />
         </div>
@@ -148,12 +161,11 @@ const CreateProductForm = () => {
             id="category"
             name="category"
             value={newProduct.category}
-            onChange={(e) =>
-              setNewProduct({ ...newProduct, category: e.target.value })
-            }
-            className="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md
-             shadow-sm py-2 px-3 text-white focus:outline-none 
-             focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            onChange={handleChange}
+            autoComplete="off"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md
+            shadow-sm py-2 px-3 text-white focus:outline-none 
+            focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg"
             required
           >
             <option value="">Select a category</option>
@@ -169,26 +181,30 @@ const CreateProductForm = () => {
           <input
             type="file"
             id="image"
-            className="sr-only"
+            name="image"
             accept="image/*"
+            className="sr-only"
             onChange={handleImageChange}
+            autoComplete="off"
           />
           <label
             htmlFor="image"
-            className="cursor-pointer bg-gray-700 py-2 px-3 border border-gray-600 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-300 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            className="cursor-pointer bg-emerald-700 py-2 px-3 border border-emerald-600 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-300 hover:text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
           >
             <IoMdCloudUpload className="h-5 w-5 inline-block mr-2" />
-            Upload Image
+            Upload image
           </label>
           {newProduct.image && (
-            <span className="ml-3 text-sm text-gray-400">Image uploaded!</span>
+            <span className="ml-3 text-sm text-emerald-400">
+              Image uploaded!
+            </span>
           )}
         </div>
 
         <button
           type="submit"
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md 
-          shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 
+          shadow-sm text-sm font-medium text-gray-300 hover:text-white bg-emerald-600 hover:bg-emerald-700 
           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
           disabled={loading}
         >
@@ -211,4 +227,5 @@ const CreateProductForm = () => {
     </motion.div>
   );
 };
+
 export default CreateProductForm;
