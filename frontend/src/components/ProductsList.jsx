@@ -2,20 +2,72 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GoTrash } from "react-icons/go";
 import { FaStar } from "react-icons/fa6";
+import { FiEdit2, FiSave, FiX } from "react-icons/fi";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
 const FILTERS = [
   { label: "All", value: "" },
-  { label: "Hub-Drive Motor", value: "hub" },
-  { label: "Mid-Drive Motor", value: "mid" },
+  { label: "Hub", value: "hub" },
+  { label: "Mid", value: "mid" },
 ];
 
+function ConfirmModal({ open, onConfirm, onCancel, productName }) {
+  if (!open) return null;
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center text-center justify-center bg-black bg-opacity-40"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="bg-red-900 rounded-lg p-6 shadow-lg max-w-sm w-full border border-emerald-700"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+      >
+        <div className="text-white font-semibold text-lg mb-2">
+          Delete product?
+        </div>
+        <div className="text-emerald-300 text-sm mb-6">
+          Are you sure you want to delete{" "}
+          <span className="font-bold">{productName}</span>? This action cannot
+          be undone.
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded bg-gray-800 text-gray-200 hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 font-semibold"
+          >
+            Confirm
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 const ProductsList = () => {
-  const { deleteProduct, toggleFeaturedProduct, products } = useProductStore();
+  const { deleteProduct, toggleFeaturedProduct, products, updateProduct } =
+    useProductStore();
   const { profile } = useUserStore();
   const [filter, setFilter] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name }
+  const [editing, setEditing] = useState(null); // id of editing product
+  const [editValues, setEditValues] = useState({
+    name: "",
+    category: "",
+    price: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
@@ -23,6 +75,64 @@ const ProductsList = () => {
   const filteredProducts = filter
     ? products.filter((p) => p.category === filter)
     : products;
+
+  // Handle edit icon click
+  const startEdit = (product) => {
+    setEditing(getId(product));
+    setEditValues({
+      name: product.name,
+      category: product.category,
+      price: product.price,
+    });
+  };
+
+  // Handle save edit
+  const handleSaveEdit = async (product) => {
+    setSavingEdit(true);
+    try {
+      // Validate input
+      if (
+        !editValues.name.trim() ||
+        !editValues.category.trim() ||
+        !editValues.price ||
+        isNaN(Number(editValues.price))
+      ) {
+        toast.error("All fields are required and price must be a number.");
+        setSavingEdit(false);
+        return;
+      }
+      await updateProduct(getId(product), {
+        name: editValues.name,
+        category: editValues.category,
+        price: Number(editValues.price),
+      });
+      toast.success("Product updated!");
+      setEditing(null);
+    } catch (err) {
+      toast.error("Could not update product.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditing(null);
+    setEditValues({ name: "", category: "", price: "" });
+  };
+
+  // Handle delete
+  const handleDelete = (id, name) => setConfirmDelete({ id, name });
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await deleteProduct(confirmDelete.id);
+      toast.success("Product deleted!");
+    } catch (e) {
+      toast.error("Could not delete product.");
+    }
+    setConfirmDelete(null);
+  };
 
   return (
     <motion.div
@@ -64,97 +174,212 @@ const ProductsList = () => {
               No products found.
             </motion.div>
           ) : (
-            filteredProducts.map((product, i) => (
-              <motion.div
-                key={getId(product)}
-                className="relative bg-emerald-900 rounded-xl shadow p-0 overflow-hidden"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 16 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
-                layout
-                whileHover={{
-                  scale: 1.02,
-                  boxShadow: "0 8px 32px 0 rgba(16,185,129,0.25)",
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {/* Invisible Action Bar (just floating icons) */}
-                <div
-                  className="absolute flex justify-between items-center left-0 right-0 top-0 px-3 pt-3 z-10 pointer-events-none"
-                  style={{ minHeight: "48px" }}
+            filteredProducts.map((product, i) => {
+              const isEditing = editing === getId(product);
+              return (
+                <motion.div
+                  key={getId(product)}
+                  className="relative bg-emerald-900 rounded-xl shadow p-0 overflow-hidden"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  layout
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: "0 8px 32px 0 rgba(16,185,129,0.25)",
+                  }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <div className="pointer-events-auto">
-                    <button
-                      onClick={() => {
-                        if (!isAdmin) {
-                          toast.error("Admin access required.");
-                          return;
+                  {/* Actions bar */}
+                  <div
+                    className="absolute flex justify-between items-center left-0 right-0 top-0 px-3 pt-3 z-10 pointer-events-none"
+                    style={{ minHeight: "48px" }}
+                  >
+                    <div className="pointer-events-auto">
+                      <button
+                        onClick={() => {
+                          if (!isAdmin) {
+                            toast.error("Admin access required.");
+                            return;
+                          }
+                          toggleFeaturedProduct(getId(product));
+                        }}
+                        className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200
+                          ${
+                            product.isFeatured
+                              ? "bg-yellow-400 text-emerald-900"
+                              : "bg-emerald-700 text-emerald-300"
+                          } hover:bg-yellow-500`}
+                        disabled={!isAdmin}
+                        title={
+                          isAdmin
+                            ? "Toggle featured"
+                            : "Only admins can change featured status"
                         }
-                        toggleFeaturedProduct(getId(product));
-                      }}
-                      className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200
-                        ${
-                          product.isFeatured
-                            ? "bg-yellow-400 text-emerald-900"
-                            : "bg-emerald-700 text-emerald-300"
-                        } hover:bg-yellow-500`}
-                      disabled={!isAdmin}
-                      title={
-                        isAdmin
-                          ? "Toggle featured"
-                          : "Only admins can change featured status"
-                      }
-                      aria-label="Toggle featured"
-                    >
-                      <FaStar className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="pointer-events-auto">
-                    <button
-                      onClick={() => {
-                        if (!isAdmin) {
-                          toast.error("Admin access required.");
-                          return;
-                        }
-                        deleteProduct(getId(product));
-                      }}
-                      className="p-2 text-red-400 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-full transition"
-                      disabled={!isAdmin}
-                      title={
-                        isAdmin ? "Delete product" : "Only admins can delete"
-                      }
-                      aria-label="Delete product"
-                    >
-                      <GoTrash className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-                {/* Add top padding so content never overlaps icons */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 pt-14 px-4 pb-6">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-24 h-24 rounded-xl object-cover border-2 border-emerald-800 shadow-md bg-gray-900"
-                    loading="lazy"
-                  />
-                  <div className="flex-1 w-full mt-2 sm:mt-0">
-                    <div className="text-xl font-semibold text-white mb-1">
-                      {product.name}
+                        aria-label="Toggle featured"
+                      >
+                        <FaStar className="h-5 w-5" />
+                      </button>
                     </div>
-                    <div className="text-emerald-300 text-base mb-2 capitalize">
-                      {product.category}
-                    </div>
-                    <div className="text-emerald-200 font-bold text-lg mb-1">
-                      £{Number(product.price).toFixed(2)}
+                    <div className="pointer-events-auto flex gap-1">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveEdit(product)}
+                            className="p-2 text-emerald-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded-full transition"
+                            disabled={!isAdmin || savingEdit}
+                            title="Save changes"
+                            aria-label="Save"
+                          >
+                            <FiSave className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            className="p-2 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-400 rounded-full transition"
+                            disabled={savingEdit}
+                            title="Cancel"
+                            aria-label="Cancel"
+                          >
+                            <FiX className="h-5 w-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              if (!isAdmin) {
+                                toast.error("Admin access required.");
+                                return;
+                              }
+                              startEdit(product);
+                            }}
+                            className="p-2 text-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full transition"
+                            disabled={!isAdmin}
+                            title={
+                              isAdmin ? "Edit product" : "Only admins can edit"
+                            }
+                            aria-label="Edit"
+                          >
+                            <FiEdit2 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!isAdmin) {
+                                toast.error("Admin access required.");
+                                return;
+                              }
+                              handleDelete(getId(product), product.name);
+                            }}
+                            className="p-2 text-red-400 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-full transition"
+                            disabled={!isAdmin}
+                            title={
+                              isAdmin
+                                ? "Delete product"
+                                : "Only admins can delete"
+                            }
+                            aria-label="Delete product"
+                          >
+                            <GoTrash className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))
+                  {/* Add top padding so content never overlaps icons */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-14 px-4 pb-6">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-24 h-24 rounded-xl object-cover border-2 border-emerald-800 shadow-md bg-gray-900"
+                      loading="lazy"
+                    />
+                    <div className="flex-1 w-full mt-2 sm:mt-0">
+                      {isEditing ? (
+                        <form
+                          className="space-y-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSaveEdit(product);
+                          }}
+                        >
+                          <input
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
+                            value={editValues.name}
+                            onChange={(e) =>
+                              setEditValues((ev) => ({
+                                ...ev,
+                                name: e.target.value,
+                              }))
+                            }
+                            disabled={savingEdit}
+                            required
+                            placeholder="Name"
+                            autoComplete="off"
+                          />
+                          <select
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
+                            value={editValues.category}
+                            onChange={(e) =>
+                              setEditValues((ev) => ({
+                                ...ev,
+                                category: e.target.value,
+                              }))
+                            }
+                            disabled={savingEdit}
+                            required
+                          >
+                            <option value="">Select category</option>
+                            <option value="hub">Hub-Drive Motor</option>
+                            <option value="mid">Mid-Drive Motor</option>
+                          </select>
+                          <input
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editValues.price}
+                            onChange={(e) =>
+                              setEditValues((ev) => ({
+                                ...ev,
+                                price: e.target.value,
+                              }))
+                            }
+                            disabled={savingEdit}
+                            required
+                            placeholder="Price"
+                            autoComplete="off"
+                          />
+                        </form>
+                      ) : (
+                        <>
+                          <div className="text-xl font-semibold text-white mb-1">
+                            {product.name}
+                          </div>
+                          <div className="text-emerald-300 text-base mb-2 capitalize">
+                            {product.category}
+                          </div>
+                          <div className="text-emerald-200 font-bold text-lg mb-1">
+                            £{Number(product.price).toFixed(0)}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
           )}
         </AnimatePresence>
       </div>
+      <AnimatePresence>
+        <ConfirmModal
+          open={!!confirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+          onConfirm={handleConfirmDelete}
+          productName={confirmDelete?.name}
+        />
+      </AnimatePresence>
     </motion.div>
   );
 };

@@ -9,9 +9,24 @@ B-52 £6599
 H-52 £5799
 Sur-ron LBX £3999
 Atlis Sigma 98V 35AH £4199
+E Ride Pro-SS 72V 40AH £4899
+Vector Typhoon 72V 3.8 kWh £3706
+Vector Vortex 72V 3.8 kWh £5055
+Vector Tide 72V 3.8 kWh £5897
 
 $ in analytics.controller.js
 
+E Ride Pro-SS (19")
+Discover the future of off-road riding with the 2024 E Ride Pro SS, a groundbreaking machine that combines power and rideability like never before. This model sets a new benchmark in the competitive off-road arena, featuring a revolutionary controller system, advanced suspension, and state-of-the-art BMS technology. The limits of your adventure are now in your hands.
+
+Vector Typhoon
+Vector Typhoon is built on high strength steel frame to sustain over 10.000 Watt peak power and 80+ km/h top speed! With zero maintenance needed and over 100 km range this bike will never limit your fun - only you decide when and where to ride next!
+
+Vector Vortex
+Vector Vortex is ultimate off-road e-bike! With 10.000 Watt motor located in the middle of the frame it has perfect weight balance! Frame is big enough for two persons ride! Vortex has so much torque you can do burnouts all day long and climb the steepest mountains you can find!
+
+Vector Tide
+Vector Tide is built from aviation grade aluminum and has best strength to weight ratio. With motor and battery in the middle of the if has great weight balance. And with new linkage suspension this e-bike is ultimate off-road machine. It is equipped with best on a market components, such as Dorado Expert fork, and Dominion brakes. There is no competitors to this bike in this power/range level with lightweight aluminum frame!
 
 Altis Sigma - Electric Dirt Bike 98V 35Ah
 
