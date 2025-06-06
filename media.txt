@@ -9,7 +9,7 @@ B-52 £6599
 H-52 £5799
 Sur-ron LBX £3999
 Atlis Sigma 98V 35AH £4199
-E Ride Pro-SS 72V 40AH £4899
+E Ride Pro-SS 72V 50AH 3.6kWh £4899
 Vector Typhoon 72V 3.8 kWh £3706
 Vector Vortex 72V 3.8 kWh £5055
 Vector Tide 72V 3.8 kWh £5897
@@ -17,7 +17,7 @@ Vector Tide 72V 3.8 kWh £5897
 $ in analytics.controller.js
 
 E Ride Pro-SS (19")
-Discover the future of off-road riding with the 2024 E Ride Pro SS, a groundbreaking machine that combines power and rideability like never before. This model sets a new benchmark in the competitive off-road arena, featuring a revolutionary controller system, advanced suspension, and state-of-the-art BMS technology. The limits of your adventure are now in your hands.
+The newly released E-Ride Pro SS 3.0 is the next generation in off-road e-motos. Packed with advanced features for superior power, handling and customisation. 
 
 Vector Typhoon
 Vector Typhoon is built on high strength steel frame to sustain over 10.000 Watt peak power and 80+ km/h top speed! With zero maintenance needed and over 100 km range this bike will never limit your fun - only you decide when and where to ride next!

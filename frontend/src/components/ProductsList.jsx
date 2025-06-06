@@ -7,14 +7,13 @@ import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-// Filters and sorts (add Featured to filters)
+// Filters & Sorts
 const FILTERS = [
   { label: "All", value: "" },
   { label: "Hub", value: "hub" },
-  { label: "Featured", value: "featured" },
   { label: "Mid", value: "mid" },
+  { label: "Featured", value: "featured" },
 ];
-
 const SORTS = [
   { label: "A–Z", value: "az" },
   { label: "Z–A", value: "za" },
@@ -67,8 +66,13 @@ function ConfirmModal({ open, onConfirm, onCancel, productName }) {
 }
 
 const ProductsList = () => {
-  const { deleteProduct, toggleFeaturedProduct, products, updateProduct } =
-    useProductStore();
+  const {
+    deleteProduct,
+    toggleFeaturedProduct,
+    products,
+    updateProduct,
+    setProducts,
+  } = useProductStore();
   const { profile } = useUserStore();
 
   const [filter, setFilter] = useState("");
@@ -80,30 +84,27 @@ const ProductsList = () => {
     name: "",
     category: "",
     price: "",
+    description: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [optimisticLoading, setOptimisticLoading] = useState({});
 
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  // Filter logic
-  let filteredProducts = products;
+  // Filter, search, sort logic
+  let filtered = products;
   if (filter === "featured") {
-    filteredProducts = products.filter((p) => p.isFeatured);
+    filtered = filtered.filter((p) => p.isFeatured);
   } else if (filter) {
-    filteredProducts = products.filter((p) => p.category === filter);
+    filtered = filtered.filter((p) => p.category === filter);
   }
-
-  // Search logic (case-insensitive)
   if (search.trim()) {
-    const q = search.trim().toLowerCase();
-    filteredProducts = filteredProducts.filter((p) =>
-      p.name?.toLowerCase().includes(q)
+    filtered = filtered.filter((p) =>
+      p.name.toLowerCase().includes(search.trim().toLowerCase())
     );
   }
-
-  // Sorting logic
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const sortedProducts = [...filtered].sort((a, b) => {
     switch (sort) {
       case "az":
         return a.name.localeCompare(b.name);
@@ -122,58 +123,103 @@ const ProductsList = () => {
     }
   });
 
-  // Edit and CRUD handlers
+  // Edit mode helpers
   const startEdit = (product) => {
     setEditing(getId(product));
     setEditValues({
       name: product.name,
       category: product.category,
       price: product.price,
+      description: product.description || "",
     });
   };
 
+  // Optimistic UI update for edit
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
+    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
+    const prevProducts = [...products];
+    const idx = products.findIndex((p) => getId(p) === getId(product));
+    const updated = {
+      ...product,
+      name: editValues.name,
+      category: editValues.category,
+      price: Number(editValues.price),
+      description: editValues.description,
+    };
+    // Optimistically update UI
+    const optimistic = [...products];
+    optimistic[idx] = updated;
+    setProducts(optimistic);
+
     try {
-      if (
-        !editValues.name.trim() ||
-        !editValues.category.trim() ||
-        !editValues.price ||
-        isNaN(Number(editValues.price))
-      ) {
-        toast.error("All fields are required and price must be a number.");
-        setSavingEdit(false);
-        return;
-      }
       await updateProduct(getId(product), {
         name: editValues.name,
         category: editValues.category,
         price: Number(editValues.price),
+        description: editValues.description,
       });
       toast.success("Product updated!");
       setEditing(null);
-    } catch {
+    } catch (err) {
       toast.error("Could not update product.");
+      setProducts(prevProducts);
     } finally {
       setSavingEdit(false);
+      setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: false }));
     }
   };
 
   const handleCancelEdit = () => {
     setEditing(null);
-    setEditValues({ name: "", category: "", price: "" });
+    setEditValues({
+      name: "",
+      category: "",
+      price: "",
+      description: "",
+    });
   };
 
+  // Optimistic UI for delete
   const handleDelete = (id, name) => setConfirmDelete({ id, name });
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
+    setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: true }));
+    const prevProducts = [...products];
+    setProducts(products.filter((p) => getId(p) !== confirmDelete.id));
     try {
       await deleteProduct(confirmDelete.id);
       toast.success("Product deleted!");
-    } catch {
+    } catch (e) {
       toast.error("Could not delete product.");
+      setProducts(prevProducts);
     }
+    setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: false }));
     setConfirmDelete(null);
+  };
+
+  // Optimistic UI for feature toggle
+  const handleToggleFeatured = async (product) => {
+    if (!isAdmin) {
+      toast.error("Admin access required.");
+      return;
+    }
+    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
+    const prevProducts = [...products];
+    const idx = products.findIndex((p) => getId(p) === getId(product));
+    const optimistic = [...products];
+    optimistic[idx] = {
+      ...product,
+      isFeatured: !product.isFeatured,
+    };
+    setProducts(optimistic);
+    try {
+      await toggleFeaturedProduct(getId(product));
+    } catch (err) {
+      toast.error("Could not update product.");
+      setProducts(prevProducts);
+    }
+    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: false }));
   };
 
   return (
@@ -184,7 +230,7 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      {/* Filters, Sort, and Search */}
+      {/* Filters, Sort, Search */}
       <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
@@ -200,7 +246,6 @@ const ProductsList = () => {
             {label}
           </button>
         ))}
-
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
@@ -217,14 +262,16 @@ const ProductsList = () => {
             </option>
           ))}
         </select>
-
-        {/* Search bar */}
+      </div>
+      <div className="flex justify-center mb-6">
         <input
           type="text"
+          placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name..."
-          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+          className="w-full max-w-md px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+          aria-label="Search products"
+          autoComplete="off"
         />
       </div>
 
@@ -244,10 +291,13 @@ const ProductsList = () => {
           ) : (
             sortedProducts.map((product, i) => {
               const isEditing = editing === getId(product);
+              const loading = optimisticLoading[getId(product)];
               return (
                 <motion.div
                   key={getId(product)}
-                  className="relative bg-emerald-900 rounded-xl shadow p-0 overflow-hidden"
+                  className={`relative bg-emerald-900 rounded-xl shadow p-0 overflow-hidden ${
+                    loading ? "opacity-70 pointer-events-none" : ""
+                  }`}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 16 }}
@@ -266,20 +316,14 @@ const ProductsList = () => {
                   >
                     <div className="pointer-events-auto">
                       <button
-                        onClick={() => {
-                          if (!isAdmin) {
-                            toast.error("Admin access required.");
-                            return;
-                          }
-                          toggleFeaturedProduct(getId(product));
-                        }}
+                        onClick={() => handleToggleFeatured(product)}
                         className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200
                           ${
                             product.isFeatured
                               ? "bg-yellow-400 text-emerald-900"
                               : "bg-emerald-700 text-emerald-300"
                           } hover:bg-yellow-500`}
-                        disabled={!isAdmin}
+                        disabled={!isAdmin || loading}
                         title={
                           isAdmin
                             ? "Toggle featured"
@@ -323,7 +367,7 @@ const ProductsList = () => {
                               startEdit(product);
                             }}
                             className="p-2 text-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full transition"
-                            disabled={!isAdmin}
+                            disabled={!isAdmin || loading}
                             title={
                               isAdmin ? "Edit product" : "Only admins can edit"
                             }
@@ -340,7 +384,7 @@ const ProductsList = () => {
                               handleDelete(getId(product), product.name);
                             }}
                             className="p-2 text-red-400 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-full transition"
-                            disabled={!isAdmin}
+                            disabled={!isAdmin || loading}
                             title={
                               isAdmin
                                 ? "Delete product"
@@ -401,7 +445,7 @@ const ProductsList = () => {
                             <option value="mid">Mid-Drive</option>
                           </select>
                           <input
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
                             type="number"
                             step="0.01"
                             min="0"
@@ -417,6 +461,19 @@ const ProductsList = () => {
                             placeholder="Price"
                             autoComplete="off"
                           />
+                          <textarea
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1 min-h-[60px]"
+                            value={editValues.description}
+                            onChange={(e) =>
+                              setEditValues((ev) => ({
+                                ...ev,
+                                description: e.target.value,
+                              }))
+                            }
+                            disabled={savingEdit}
+                            placeholder="Description"
+                            autoComplete="off"
+                          />
                         </form>
                       ) : (
                         <>
@@ -429,10 +486,18 @@ const ProductsList = () => {
                           <div className="text-emerald-200 font-bold text-lg mb-1">
                             £{Number(product.price).toFixed(0)}
                           </div>
+                          <div className="text-white max-w-full break-words whitespace-pre-line text-sm">
+                            {product.description}
+                          </div>
                         </>
                       )}
                     </div>
                   </div>
+                  {loading && (
+                    <div className="absolute inset-0 bg-emerald-950/80 flex items-center justify-center z-20">
+                      <div className="loader animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
+                    </div>
+                  )}
                 </motion.div>
               );
             })

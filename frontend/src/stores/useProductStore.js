@@ -43,18 +43,16 @@ export const useProductStore = create((set, get) => ({
     }
   },
 
-  // UPDATE PRODUCT (Admin) - NEW!
+  // UPDATE PRODUCT (Admin)
   updateProduct: async (productId, updateFields) => {
     set({ loading: true });
     try {
-      // Optionally handle image update here as well, if needed
       const { error } = await supabase
         .from("products")
         .update(updateFields)
         .eq("id", productId);
 
       if (error) throw error;
-      toast.success("Product updated!");
       await get().fetchAllProducts();
     } catch (error) {
       toast.error(getErrorMsg(error));
