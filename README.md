@@ -1,3 +1,3 @@
 # Legxcy
 
-A full stack ecommerce app developed using MERN, Cloudinary and Stripe
+A full stack ecommerce app developed using Supabase, Cloudinary and Stripe

@@ -7,10 +7,22 @@ import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
+// Add Featured to filters
 const FILTERS = [
   { label: "All", value: "" },
   { label: "Hub", value: "hub" },
   { label: "Mid", value: "mid" },
+  { label: "Featured", value: "featured" },
+];
+
+// Sort options
+const SORTS = [
+  { label: "A–Z", value: "az" },
+  { label: "Z–A", value: "za" },
+  { label: "Price: Low–High", value: "price-asc" },
+  { label: "Price: High–Low", value: "price-desc" },
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
 ];
 
 function ConfirmModal({ open, onConfirm, onCancel, productName }) {
@@ -60,6 +72,7 @@ const ProductsList = () => {
     useProductStore();
   const { profile } = useUserStore();
   const [filter, setFilter] = useState("");
+  const [sort, setSort] = useState("az");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editValues, setEditValues] = useState({
@@ -72,9 +85,33 @@ const ProductsList = () => {
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  const filteredProducts = filter
-    ? products.filter((p) => p.category === filter)
-    : products;
+  // Filtering logic
+  let filteredProducts = products;
+  if (filter === "featured") {
+    filteredProducts = products.filter((p) => p.isFeatured);
+  } else if (filter) {
+    filteredProducts = products.filter((p) => p.category === filter);
+  }
+
+  // Sorting logic
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sort) {
+      case "az":
+        return a.name.localeCompare(b.name);
+      case "za":
+        return b.name.localeCompare(a.name);
+      case "price-asc":
+        return (a.price ?? 0) - (b.price ?? 0);
+      case "price-desc":
+        return (b.price ?? 0) - (a.price ?? 0);
+      case "newest":
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      case "oldest":
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      default:
+        return 0;
+    }
+  });
 
   // Handle edit icon click
   const startEdit = (product) => {
@@ -90,7 +127,6 @@ const ProductsList = () => {
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
     try {
-      // Validate input
       if (
         !editValues.name.trim() ||
         !editValues.category.trim() ||
@@ -142,8 +178,8 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2 mb-6 justify-center">
+      {/* Filters and Sort */}
+      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
             key={value}
@@ -158,12 +194,26 @@ const ProductsList = () => {
             {label}
           </button>
         ))}
+
+        {/* Sort Dropdown */}
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+          aria-label="Sort products"
+        >
+          {SORTS.map(({ label, value }) => (
+            <option value={value} key={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Product Cards */}
       <div className="grid gap-6 grid-cols-1">
         <AnimatePresence>
-          {filteredProducts.length === 0 ? (
+          {sortedProducts.length === 0 ? (
             <motion.div
               className="col-span-full text-center py-8 text-gray-300 text-lg"
               key="empty"
@@ -174,7 +224,7 @@ const ProductsList = () => {
               No products found.
             </motion.div>
           ) : (
-            filteredProducts.map((product, i) => {
+            sortedProducts.map((product, i) => {
               const isEditing = editing === getId(product);
               return (
                 <motion.div
