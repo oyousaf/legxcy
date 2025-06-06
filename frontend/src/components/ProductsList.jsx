@@ -104,6 +104,7 @@ const ProductsList = () => {
       p.name.toLowerCase().includes(search.trim().toLowerCase())
     );
   }
+  
   const sortedProducts = [...filtered].sort((a, b) => {
     switch (sort) {
       case "az":

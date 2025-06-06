@@ -13,14 +13,20 @@ export const useProductStore = create((set, get) => ({
   resetProducts: () => set({ products: [] }),
 
   // CREATE PRODUCT (Admin)
+  // In useProductStore.js
+
   createProduct: async (productData) => {
     set({ loading: true });
     try {
       let imageUrl = productData.image;
-      if (productData.image && productData.image.startsWith("data:")) {
-        const { uploadImageToSupabase } = await import("../lib/supabaseStorage");
+
+      // Only upload if image is a new data URL (not an existing HTTP/HTTPS url)
+      if (imageUrl && imageUrl.startsWith("data:")) {
+        const { uploadImageToSupabase } = await import(
+          "../lib/supabaseStorage"
+        );
         const { publicUrl, error } = await uploadImageToSupabase(
-          productData.image,
+          imageUrl,
           "products"
         );
         if (error) throw new Error("Image upload failed");
@@ -37,7 +43,7 @@ export const useProductStore = create((set, get) => ({
       toast.success("Product created!");
       await get().fetchAllProducts();
     } catch (error) {
-      toast.error(getErrorMsg(error));
+      toast.error(error?.message || "Error creating product");
     } finally {
       set({ loading: false });
     }

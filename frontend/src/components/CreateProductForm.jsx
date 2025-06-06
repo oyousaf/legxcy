@@ -87,14 +87,14 @@ const CreateProductForm = () => {
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <div>
           <label
-            htmlFor="name"
+            htmlFor="product-name"
             className="block text-sm font-medium text-gray-300"
           >
             Product Name
           </label>
           <input
             type="text"
-            id="name"
+            id="product-name"
             name="name"
             value={newProduct.name}
             onChange={handleChange}
@@ -108,13 +108,13 @@ const CreateProductForm = () => {
 
         <div>
           <label
-            htmlFor="description"
+            htmlFor="product-description"
             className="block text-sm font-medium text-gray-300"
           >
             Description
           </label>
           <textarea
-            id="description"
+            id="product-description"
             name="description"
             value={newProduct.description}
             onChange={handleChange}
@@ -129,14 +129,14 @@ const CreateProductForm = () => {
 
         <div>
           <label
-            htmlFor="price"
+            htmlFor="product-price"
             className="block text-sm font-medium text-gray-300"
           >
             Price
           </label>
           <input
             type="number"
-            id="price"
+            id="product-price"
             name="price"
             value={newProduct.price}
             onChange={handleChange}
@@ -152,13 +152,13 @@ const CreateProductForm = () => {
 
         <div>
           <label
-            htmlFor="category"
+            htmlFor="product-category"
             className="block text-sm font-medium text-gray-300"
           >
             Category
           </label>
           <select
-            id="category"
+            id="product-category"
             name="category"
             value={newProduct.category}
             onChange={handleChange}
@@ -180,7 +180,7 @@ const CreateProductForm = () => {
         <div className="mt-1 flex items-center">
           <input
             type="file"
-            id="image"
+            id="product-image"
             name="image"
             accept="image/*"
             className="sr-only"
@@ -188,7 +188,7 @@ const CreateProductForm = () => {
             autoComplete="off"
           />
           <label
-            htmlFor="image"
+            htmlFor="product-image"
             className="cursor-pointer bg-emerald-700 py-2 px-3 border border-emerald-600 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-300 hover:text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
           >
             <IoMdCloudUpload className="h-5 w-5 inline-block mr-2" />
