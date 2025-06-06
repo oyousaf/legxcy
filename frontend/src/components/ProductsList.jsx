@@ -7,15 +7,14 @@ import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-// Add Featured to filters
+// Filters and sorts (add Featured to filters)
 const FILTERS = [
   { label: "All", value: "" },
   { label: "Hub", value: "hub" },
-  { label: "Mid", value: "mid" },
   { label: "Featured", value: "featured" },
+  { label: "Mid", value: "mid" },
 ];
 
-// Sort options
 const SORTS = [
   { label: "A–Z", value: "az" },
   { label: "Z–A", value: "za" },
@@ -71,8 +70,10 @@ const ProductsList = () => {
   const { deleteProduct, toggleFeaturedProduct, products, updateProduct } =
     useProductStore();
   const { profile } = useUserStore();
+
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("az");
+  const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editValues, setEditValues] = useState({
@@ -85,12 +86,20 @@ const ProductsList = () => {
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  // Filtering logic
+  // Filter logic
   let filteredProducts = products;
   if (filter === "featured") {
     filteredProducts = products.filter((p) => p.isFeatured);
   } else if (filter) {
     filteredProducts = products.filter((p) => p.category === filter);
+  }
+
+  // Search logic (case-insensitive)
+  if (search.trim()) {
+    const q = search.trim().toLowerCase();
+    filteredProducts = filteredProducts.filter((p) =>
+      p.name?.toLowerCase().includes(q)
+    );
   }
 
   // Sorting logic
@@ -113,7 +122,7 @@ const ProductsList = () => {
     }
   });
 
-  // Handle edit icon click
+  // Edit and CRUD handlers
   const startEdit = (product) => {
     setEditing(getId(product));
     setEditValues({
@@ -123,7 +132,6 @@ const ProductsList = () => {
     });
   };
 
-  // Handle save edit
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
     try {
@@ -144,27 +152,25 @@ const ProductsList = () => {
       });
       toast.success("Product updated!");
       setEditing(null);
-    } catch (err) {
+    } catch {
       toast.error("Could not update product.");
     } finally {
       setSavingEdit(false);
     }
   };
 
-  // Handle cancel edit
   const handleCancelEdit = () => {
     setEditing(null);
     setEditValues({ name: "", category: "", price: "" });
   };
 
-  // Handle delete
   const handleDelete = (id, name) => setConfirmDelete({ id, name });
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
     try {
       await deleteProduct(confirmDelete.id);
       toast.success("Product deleted!");
-    } catch (e) {
+    } catch {
       toast.error("Could not delete product.");
     }
     setConfirmDelete(null);
@@ -178,7 +184,7 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      {/* Filters and Sort */}
+      {/* Filters, Sort, and Search */}
       <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
@@ -195,19 +201,31 @@ const ProductsList = () => {
           </button>
         ))}
 
-        {/* Sort Dropdown */}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer"
           aria-label="Sort products"
         >
           {SORTS.map(({ label, value }) => (
-            <option value={value} key={value}>
+            <option
+              value={value}
+              key={value}
+              className="bg-emerald-900 text-emerald-300 cursor-pointer"
+            >
               {label}
             </option>
           ))}
         </select>
+
+        {/* Search bar */}
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name..."
+          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+        />
       </div>
 
       {/* Product Cards */}
