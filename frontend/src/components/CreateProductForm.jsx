@@ -140,7 +140,7 @@ const CreateProductForm = () => {
             name="price"
             value={newProduct.price}
             onChange={handleChange}
-            step="0.01"
+            step="1"
             min="0"
             autoComplete="off"
             className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm 
