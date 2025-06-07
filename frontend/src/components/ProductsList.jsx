@@ -220,13 +220,13 @@ const ProductsList = () => {
 
   return (
     <motion.div
-      className="bg-emerald-800 shadow-lg rounded-lg p-4 max-w-4xl mx-auto z-20"
+      className="bg-emerald-800 shadow-lg rounded-lg p-4 max-w-4xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
+      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center z">
         {FILTERS.map(({ label, value }) => (
           <button
             key={value}
