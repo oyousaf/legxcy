@@ -9,7 +9,6 @@ const GiftCouponCard = () => {
   const [userInputCode, setUserInputCode] = useState("");
   const { coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } =
     useCartStore();
-
   const { user } = useUserStore();
   const navigate = useNavigate();
 
@@ -27,8 +26,12 @@ const GiftCouponCard = () => {
       navigate("/login");
       return;
     }
-    if (!userInputCode) return;
-    applyCoupon(userInputCode);
+    const code = userInputCode.trim();
+    if (!code) {
+      toast.error("Please enter a code.");
+      return;
+    }
+    applyCoupon(code);
   };
 
   const handleRemoveCoupon = async () => {
@@ -64,8 +67,11 @@ const GiftCouponCard = () => {
             focus:ring-emerald-500"
             placeholder="Enter code here"
             value={userInputCode}
-            onChange={(e) => setUserInputCode(e.target.value)}
-            required
+            onChange={(e) =>
+              setUserInputCode(e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))
+            }
+            maxLength={24}
+            autoComplete="off"
           />
         </div>
 
@@ -82,11 +88,9 @@ const GiftCouponCard = () => {
       {isCouponApplied && coupon && (
         <div className="mt-4">
           <h3 className="text-lg font-medium text-gray-300">Applied Coupon</h3>
-
           <p className="mt-2 text-sm text-gray-400">
             {coupon.code} - {coupon.discountPercentage}% off
           </p>
-
           <motion.button
             type="button"
             className="mt-2 flex w-full items-center justify-center rounded-lg bg-red-600 

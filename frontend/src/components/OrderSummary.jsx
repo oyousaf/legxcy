@@ -25,7 +25,7 @@ const OrderSummary = () => {
 
   const handlePayment = async () => {
     if (loading) return;
-    setLoading(true); // Prevent duplicate clicks
+    setLoading(true);
     if (!user) {
       toast.error("Please log in to proceed to checkout.");
       navigate("/login");

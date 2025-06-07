@@ -62,7 +62,7 @@ export const useUserStore = create((set, get) => ({
     const user = data.user || data.session?.user;
     set({ user, loading: false });
     if (user) await get().fetchProfile(user.id);
-    toast.success("Logged in!");
+    toast.success("Welcome back!");
   },
 
   logout: async () => {
