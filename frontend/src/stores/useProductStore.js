@@ -40,7 +40,6 @@ export const useProductStore = create((set, get) => ({
         .single();
 
       if (error) throw error;
-      toast.success("Product created!");
       await get().fetchAllProducts();
     } catch (error) {
       toast.error(error?.message || "Error creating product");

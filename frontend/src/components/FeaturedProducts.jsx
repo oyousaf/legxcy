@@ -80,7 +80,7 @@ const FeaturedProducts = ({ featuredProducts }) => {
                         {product.name}
                       </h3>
                       <p className="text-emerald-300 font-medium mb-4">
-                        £{product.price.toFixed(2)}
+                        £{product.price.toFixed()}
                       </p>
                       <button
                         onClick={() => handleAddToCart(product)}

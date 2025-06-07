@@ -80,10 +80,6 @@ const CreateProductForm = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <h2 className="text-2xl font-semibold mb-6 text-gray-300">
-        Create New Product
-      </h2>
-
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <div>
           <label

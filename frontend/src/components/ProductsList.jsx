@@ -485,7 +485,7 @@ const ProductsList = () => {
                             {product.category}
                           </div>
                           <div className="text-emerald-200 font-bold text-lg mb-1">
-                            £{Number(product.price).toFixed(0)}
+                            £{Number(product.price).toFixed()}
                           </div>
                           <div className="text-white max-w-full break-words whitespace-pre-line text-sm">
                             {product.description}
