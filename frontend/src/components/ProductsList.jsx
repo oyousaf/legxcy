@@ -7,7 +7,6 @@ import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-// Filters & Sorts
 const FILTERS = [
   { label: "All", value: "" },
   { label: "Hub", value: "hub" },
@@ -15,12 +14,12 @@ const FILTERS = [
   { label: "Featured", value: "featured" },
 ];
 const SORTS = [
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
   { label: "A–Z", value: "az" },
   { label: "Z–A", value: "za" },
   { label: "Price: Low–High", value: "price-asc" },
   { label: "Price: High–Low", value: "price-desc" },
-  { label: "Newest", value: "newest" },
-  { label: "Oldest", value: "oldest" },
 ];
 
 function ConfirmModal({ open, onConfirm, onCancel, productName }) {
@@ -72,7 +71,7 @@ const ProductsList = () => {
     products,
     updateProduct,
     setProducts,
-    fetchAllProducts, // <-- Make sure this is in your store
+    fetchAllProducts,
   } = useProductStore();
   const { profile } = useUserStore();
 
@@ -94,7 +93,6 @@ const ProductsList = () => {
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  // Filtering & sorting
   let filtered = products;
   if (filter === "featured") {
     filtered = filtered.filter((p) => p.isFeatured);
@@ -125,7 +123,6 @@ const ProductsList = () => {
     }
   });
 
-  // Edit mode helpers
   const startEdit = (product) => {
     setEditing(getId(product));
     setEditValues({
@@ -136,7 +133,6 @@ const ProductsList = () => {
     });
   };
 
-  // Optimistic UI update for edit
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
     setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
@@ -149,7 +145,6 @@ const ProductsList = () => {
       price: Number(editValues.price),
       description: editValues.description,
     };
-    // Optimistically update UI
     const optimistic = [...products];
     optimistic[idx] = updated;
     setProducts(optimistic);
@@ -161,8 +156,8 @@ const ProductsList = () => {
         price: Number(editValues.price),
         description: editValues.description,
       });
-      toast.success("Product updated!");
       setEditing(null);
+      setTimeout(fetchAllProducts, 1300);
     } catch (err) {
       toast.error("Could not update product.");
       setProducts(prevProducts);
@@ -182,7 +177,6 @@ const ProductsList = () => {
     });
   };
 
-  // Delete handlers
   const handleDelete = (id, name) => setConfirmDelete({ id, name });
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
@@ -191,7 +185,7 @@ const ProductsList = () => {
     setProducts(products.filter((p) => getId(p) !== confirmDelete.id));
     try {
       await deleteProduct(confirmDelete.id);
-      toast.success("Product deleted!");
+      setTimeout(fetchAllProducts, 1300);
     } catch (e) {
       toast.error("Could not delete product.");
       setProducts(prevProducts);
@@ -200,7 +194,6 @@ const ProductsList = () => {
     setConfirmDelete(null);
   };
 
-  // Feature toggle
   const handleToggleFeatured = async (product) => {
     if (!isAdmin) {
       toast.error("Admin access required.");
@@ -208,11 +201,18 @@ const ProductsList = () => {
     }
     const prodId = getId(product);
     setTogglingStar((prev) => ({ ...prev, [prodId]: true }));
+    const prevProducts = [...products];
+    const idx = products.findIndex((p) => getId(p) === prodId);
+    const optimistic = [...products];
+    optimistic[idx] = { ...product, isFeatured: !product.isFeatured };
+    setProducts(optimistic);
+
     try {
       await toggleFeaturedProduct(prodId);
-      await fetchAllProducts(); // <-- Always refresh from DB
+      setTimeout(fetchAllProducts, 1100);
     } catch (err) {
       toast.error("Could not update product.");
+      setProducts(prevProducts);
     } finally {
       setTogglingStar((prev) => ({ ...prev, [prodId]: false }));
     }
@@ -220,13 +220,12 @@ const ProductsList = () => {
 
   return (
     <motion.div
-      className="bg-emerald-800 shadow-lg rounded-lg p-4 max-w-4xl mx-auto"
+      className="bg-emerald-800 shadow-lg rounded-lg p-4 max-w-4xl mx-auto z-20"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      {/* Filters, Sort, Search */}
       <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
@@ -270,8 +269,6 @@ const ProductsList = () => {
           autoComplete="off"
         />
       </div>
-
-      {/* Product Cards */}
       <div className="grid gap-6 grid-cols-1">
         <AnimatePresence>
           {sortedProducts.length === 0 ? (
@@ -307,7 +304,6 @@ const ProductsList = () => {
                   }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {/* Actions bar */}
                   <div
                     className="absolute flex justify-between items-center left-0 right-0 top-0 px-3 pt-3 z-10 pointer-events-none"
                     style={{ minHeight: "48px" }}
@@ -500,7 +496,6 @@ const ProductsList = () => {
                       <div className="loader animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
                     </div>
                   )}
-                  {/* Local Confirm Modal */}
                   <AnimatePresence>
                     {isModalOpen && (
                       <ConfirmModal
