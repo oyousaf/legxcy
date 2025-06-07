@@ -6,13 +6,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import AnalyticsTab from "../components/AnalyticsTab";
-import CreateProductForm from "../components/CreateProductForm";
+import AddProductForm from "../components/AddProductForm";
 import ProductsList from "../components/ProductsList";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 
 const tabs = [
-  { id: "create", label: "Create Product", icon: FaPlusCircle },
+  { id: "add", label: "Add Product", icon: FaPlusCircle },
   { id: "products", label: "Products", icon: LuShoppingBasket },
   { id: "analytics", label: "Analytics", icon: MdBarChart },
 ];
@@ -47,7 +47,7 @@ const AdminPage = () => {
   const getTabFromURL = useCallback(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    return tabs.some(t => t.id === tab) ? tab : "create";
+    return tabs.some(t => t.id === tab) ? tab : "add";
   }, [location.search]);
 
   const [activeTab, setActiveTab] = useState(getTabFromURL);
@@ -136,7 +136,7 @@ const AdminPage = () => {
               transition={{ duration: 0.2 }}
             >
               <TabErrorBoundary>
-                {activeTab === "create" && <CreateProductForm />}
+                {activeTab === "add" && <AddProductForm />}
                 {activeTab === "products" && <ProductsList />}
                 {activeTab === "analytics" && <AnalyticsTab />}
               </TabErrorBoundary>

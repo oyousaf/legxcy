@@ -76,7 +76,7 @@ const ProductsList = () => {
   const { profile } = useUserStore();
 
   const [filter, setFilter] = useState("");
-  const [sort, setSort] = useState("az");
+  const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editing, setEditing] = useState(null);

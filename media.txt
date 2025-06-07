@@ -8,26 +8,30 @@ Swagtron EB5+ £375
 B-52 £6599
 H-52 £5799
 Sur-ron LBX £3999
-Atlis Sigma 98V 35AH £4199
-E Ride Pro-SS 72V 50AH 3.6kWh £4899
-Vector Typhoon 72V 3.8 kWh £3706
-Vector Vortex 72V 3.8 kWh £5055
-Vector Tide 72V 3.8 kWh £5897
+
 
 $ in analytics.controller.js
 
-E Ride Pro-SS (19")
-The newly released E-Ride Pro SS 3.0 is the next generation in off-road e-motos. Packed with advanced features for superior power, handling and customisation. 
-
-Vector Typhoon
+Vector Typhoon 72V 3.8kWh (£3706)
 Vector Typhoon is built on high strength steel frame to sustain over 10,000 Watt peak power and 80+km/h top speed! With zero maintenance needed and over 100 km range this bike will never limit your fun - only you decide when and where to ride next!
 
-Vector Vortex
+Vector Vortex 72V 3.8kWh (£5055)
 Vector Vortex is ultimate off-road e-bike! With a 10,000 Watt motor located in the middle of the frame it has perfect weight balance! Frame is big enough for a two person ride! Vortex has so much torque you can do burnouts all day long and climb the steepest mountains you can find!
 
-Vector Tide
+Vector Tide 72V 3.8kWh (£5897)
 Vector Tide is built from aviation grade aluminum and has best strength to weight ratio. With motor and battery in the middle of the if has great weight balance. And with new linkage suspension this e-bike is ultimate off-road machine. It is equipped with best on a market components, such as Dorado Expert fork, and Dominion brakes. There is no competitors to this bike in this power/range level with lightweight aluminum frame!
 
-Altis Sigma - Electric Dirt Bike 98V 35Ah
+SB Storm 72V 75AH 14.4kWh (£4014)
+The SB Storm is a mid-drive enduro bike that delivers blazing acceleration and unmatched endurance, with 14,400 watts of peak power and a 130-mile range.
 
+Sur-ron Ultra Bee 74V 60AH 21kWh (£6499)
+Experience the ultimate in off-road versatility with the ability to go anywhere and conquer any terrain!
+
+Rawr Mantis 72V 35AH 9.5kWh (£2955)
+Introducing the 72V Rawrr Mantis, the ultimate electric dirt bike designed for thrill-seekers and off-road enthusiasts. Powered by a robust 9500W motor and a high-capacity 72V 35Ah battery, this beast delivers an exhilarating top speed of 54 mph, making it perfect for tackling tough terrain and steep trails.
+
+E Ride Pro-SS 72V 50AH 3.6kWh (£5099)
+The newly released E-Ride Pro SS 3.0 is the next generation in off-road e-motos. Packed with advanced features for superior power, handling and customisation.
+
+Altis Sigma - Electric Dirt Bike 98V 35Ah (£4199)
 If you're searching for the best electric dirt bike for adults that blends power, performance, and cutting-edge tech, look no further. The Altis Sigma is here to revolutionise your off-roading experience. Think Stark Varg, but more than half the cost!

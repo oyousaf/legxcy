@@ -13,7 +13,7 @@ export const useProductStore = create((set, get) => ({
   resetProducts: () => set({ products: [] }),
 
   // CREATE PRODUCT (Admin)
-  createProduct: async (productData) => {
+  addProduct: async (productData) => {
     set({ loading: true });
     try {
       let imageUrl = productData.image;
@@ -23,10 +23,7 @@ export const useProductStore = create((set, get) => ({
         const { uploadImageToSupabase } = await import(
           "../lib/supabaseStorage"
         );
-        const { publicUrl, error } = await uploadImageToSupabase(
-          imageUrl,
-          "product-images"
-        );
+        const { publicUrl, error } = await uploadImageToSupabase(imageUrl);
         if (error) throw new Error("Image upload failed");
         imageUrl = publicUrl;
       }
