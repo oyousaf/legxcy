@@ -83,21 +83,6 @@ export const checkoutSuccess = async (req, res) => {
       return res.status(400).json({ message: "Payment not completed." });
     }
 
-    // Check for existing order to avoid duplicates
-    const { data: existingOrder } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("stripeSessionId", sessionId)
-      .maybeSingle();
-
-    if (existingOrder) {
-      return res.status(200).json({
-        success: true,
-        message: "Order already exists.",
-        orderId: existingOrder.id,
-      });
-    }
-
     // Deactivate coupon if used
     if (session.metadata.couponCode) {
       await supabase
@@ -110,26 +95,30 @@ export const checkoutSuccess = async (req, res) => {
     // Parse products from metadata
     const products = JSON.parse(session.metadata.products);
 
-    // Create order
-    const { data: order, error: orderError } = await supabase
+    // Insert or update order
+    const { data: order, error } = await supabase
       .from("orders")
-      .insert([
-        {
-          userId: session.metadata.userId,
-          products: JSON.stringify(products),
-          totalAmount: session.amount_total / 100,
-          stripeSessionId: sessionId,
-          createdAt: new Date().toISOString(),
-        },
-      ])
+      .upsert(
+        [
+          {
+            userId: session.metadata.userId,
+            products: JSON.stringify(products),
+            totalAmount: session.amount_total / 100,
+            stripeSessionId: sessionId,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "stripeSessionId" }
+      )
       .select()
       .single();
-    if (orderError) throw orderError;
+
+    if (error) throw error;
 
     res.status(200).json({
       success: true,
       message:
-        "Payment successful, order created, and coupon deactivated if used.",
+        "Payment successful, order created (upserted), and coupon deactivated if used.",
       orderId: order.id,
     });
   } catch (error) {
