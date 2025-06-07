@@ -27,7 +27,7 @@ function ConfirmModal({ open, onConfirm, onCancel, productName }) {
   if (!open) return null;
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center text-center justify-center bg-black bg-opacity-40"
+      className="absolute left-0 right-0 top-0 z-50 flex items-center justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -92,7 +92,7 @@ const ProductsList = () => {
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  // Filter, search, sort logic
+  // Filtering & sorting
   let filtered = products;
   if (filter === "featured") {
     filtered = filtered.filter((p) => p.isFeatured);
@@ -104,7 +104,6 @@ const ProductsList = () => {
       p.name.toLowerCase().includes(search.trim().toLowerCase())
     );
   }
-  
   const sortedProducts = [...filtered].sort((a, b) => {
     switch (sort) {
       case "az":
@@ -181,7 +180,7 @@ const ProductsList = () => {
     });
   };
 
-  // Optimistic UI for delete
+  // Delete handlers
   const handleDelete = (id, name) => setConfirmDelete({ id, name });
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
@@ -199,7 +198,7 @@ const ProductsList = () => {
     setConfirmDelete(null);
   };
 
-  // Optimistic UI for feature toggle
+  // Feature toggle
   const handleToggleFeatured = async (product) => {
     if (!isAdmin) {
       toast.error("Admin access required.");
@@ -293,6 +292,7 @@ const ProductsList = () => {
             sortedProducts.map((product, i) => {
               const isEditing = editing === getId(product);
               const loading = optimisticLoading[getId(product)];
+              const isModalOpen = confirmDelete?.id === getId(product);
               return (
                 <motion.div
                   key={getId(product)}
@@ -499,20 +499,23 @@ const ProductsList = () => {
                       <div className="loader animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
                     </div>
                   )}
+                  {/* Local Confirm Modal */}
+                  <AnimatePresence>
+                    {isModalOpen && (
+                      <ConfirmModal
+                        open={true}
+                        onCancel={() => setConfirmDelete(null)}
+                        onConfirm={handleConfirmDelete}
+                        productName={confirmDelete?.name}
+                      />
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               );
             })
           )}
         </AnimatePresence>
       </div>
-      <AnimatePresence>
-        <ConfirmModal
-          open={!!confirmDelete}
-          onCancel={() => setConfirmDelete(null)}
-          onConfirm={handleConfirmDelete}
-          productName={confirmDelete?.name}
-        />
-      </AnimatePresence>
     </motion.div>
   );
 };

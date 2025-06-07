@@ -13,8 +13,6 @@ export const useProductStore = create((set, get) => ({
   resetProducts: () => set({ products: [] }),
 
   // CREATE PRODUCT (Admin)
-  // In useProductStore.js
-
   createProduct: async (productData) => {
     set({ loading: true });
     try {
@@ -27,7 +25,7 @@ export const useProductStore = create((set, get) => ({
         );
         const { publicUrl, error } = await uploadImageToSupabase(
           imageUrl,
-          "products"
+          "product-images"
         );
         if (error) throw new Error("Image upload failed");
         imageUrl = publicUrl;
@@ -106,7 +104,6 @@ export const useProductStore = create((set, get) => ({
         .delete()
         .eq("id", productId);
       if (error) throw error;
-      toast.success("Product deleted!");
       await get().fetchAllProducts();
     } catch (error) {
       toast.error(getErrorMsg(error));
