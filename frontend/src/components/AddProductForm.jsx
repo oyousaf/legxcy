@@ -29,6 +29,10 @@ const AddProductForm = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload a valid image file.");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewProduct((prev) => ({ ...prev, image: reader.result }));

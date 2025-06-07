@@ -72,6 +72,7 @@ const ProductsList = () => {
     products,
     updateProduct,
     setProducts,
+    fetchAllProducts, // <-- Make sure this is in your store
   } = useProductStore();
   const { profile } = useUserStore();
 
@@ -88,6 +89,7 @@ const ProductsList = () => {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [optimisticLoading, setOptimisticLoading] = useState({});
+  const [togglingStar, setTogglingStar] = useState({});
 
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
@@ -204,22 +206,16 @@ const ProductsList = () => {
       toast.error("Admin access required.");
       return;
     }
-    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
-    const prevProducts = [...products];
-    const idx = products.findIndex((p) => getId(p) === getId(product));
-    const optimistic = [...products];
-    optimistic[idx] = {
-      ...product,
-      isFeatured: !product.isFeatured,
-    };
-    setProducts(optimistic);
+    const prodId = getId(product);
+    setTogglingStar((prev) => ({ ...prev, [prodId]: true }));
     try {
-      await toggleFeaturedProduct(getId(product));
+      await toggleFeaturedProduct(prodId);
+      await fetchAllProducts(); // <-- Always refresh from DB
     } catch (err) {
       toast.error("Could not update product.");
-      setProducts(prevProducts);
+    } finally {
+      setTogglingStar((prev) => ({ ...prev, [prodId]: false }));
     }
-    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: false }));
   };
 
   return (
@@ -293,6 +289,7 @@ const ProductsList = () => {
               const isEditing = editing === getId(product);
               const loading = optimisticLoading[getId(product)];
               const isModalOpen = confirmDelete?.id === getId(product);
+              const starToggling = togglingStar[getId(product)];
               return (
                 <motion.div
                   key={getId(product)}
@@ -324,7 +321,7 @@ const ProductsList = () => {
                               ? "bg-yellow-400 text-emerald-900"
                               : "bg-emerald-700 text-emerald-300"
                           } hover:bg-yellow-500`}
-                        disabled={!isAdmin || loading}
+                        disabled={!isAdmin || loading || starToggling}
                         title={
                           isAdmin
                             ? "Toggle featured"
@@ -332,7 +329,11 @@ const ProductsList = () => {
                         }
                         aria-label="Toggle featured"
                       >
-                        <FaStar className="h-5 w-5" />
+                        {starToggling ? (
+                          <span className="w-5 h-5 block animate-spin rounded-full border-t-2 border-b-2 border-emerald-800" />
+                        ) : (
+                          <FaStar className="h-5 w-5" />
+                        )}
                       </button>
                     </div>
                     <div className="pointer-events-auto flex gap-1">
