@@ -20,6 +20,13 @@ const CategoryPage = () => {
   const { fetchProductsByCategory, products, loading } = useProductStore();
   const { category } = useParams();
 
+  // Clear products immediately on category change for instant skeletons
+  useEffect(() => {
+    useProductStore.setState({ products: [] });
+    // eslint-disable-next-line
+  }, [category]);
+
+  // Fetch products after clearing them
   useEffect(() => {
     fetchProductsByCategory(category);
   }, [fetchProductsByCategory, category]);
@@ -54,12 +61,10 @@ const CategoryPage = () => {
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 justify-items-center"
           initial={false}
-          animate="show"
-          variants={{
-            show: { transition: { staggerChildren: 0.08 } }
-          }}
+          animate={{ opacity: loading ? 0.5 : 1 }}
+          transition={{ duration: 0.2 }}
         >
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {loading ? (
               skeletons.map((_, idx) => (
                 <motion.div
