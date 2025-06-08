@@ -86,16 +86,11 @@ const AddProductForm = () => {
     >
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
         <div>
-          <label
-            htmlFor="product-name"
-            className="block text-sm font-medium text-gray-300"
-          >
-            Product Name
-          </label>
           <input
             type="text"
             id="product-name"
             name="name"
+            placeholder="Product Name"
             value={newProduct.name}
             onChange={handleChange}
             autoComplete="off"
@@ -106,15 +101,10 @@ const AddProductForm = () => {
         </div>
 
         <div>
-          <label
-            htmlFor="product-description"
-            className="block text-sm font-medium text-gray-300"
-          >
-            Description
-          </label>
           <textarea
             id="product-description"
             name="description"
+            placeholder="Description"
             value={newProduct.description}
             onChange={handleChange}
             rows="3"
@@ -126,16 +116,11 @@ const AddProductForm = () => {
         </div>
 
         <div>
-          <label
-            htmlFor="product-price"
-            className="block text-sm font-medium text-gray-300"
-          >
-            Price
-          </label>
           <input
             type="number"
             id="product-price"
             name="price"
+            placeholder="Price"
             value={newProduct.price}
             onChange={handleChange}
             step="0.01"
@@ -148,15 +133,10 @@ const AddProductForm = () => {
         </div>
 
         <div>
-          <label
-            htmlFor="product-category"
-            className="block text-sm font-medium text-gray-300"
-          >
-            Category
-          </label>
           <select
             id="product-category"
             name="category"
+            placeholder="Category"
             value={newProduct.category}
             onChange={handleChange}
             autoComplete="off"
