@@ -56,16 +56,12 @@ const CategoryPage = () => {
   const { fetchProductsByCategory, products, loading } = useProductStore();
   const { category } = useParams();
   const navigate = useNavigate();
-
-  // Sorting state
   const [sort, setSort] = useState("newest");
 
-  // Clear products immediately on category change for instant skeletons
+  // Reset and fetch products on category change
   useEffect(() => {
     useProductStore.setState({ products: [] });
   }, [category]);
-
-  // Fetch products after clearing them
   useEffect(() => {
     fetchProductsByCategory(category);
   }, [fetchProductsByCategory, category]);
@@ -76,7 +72,6 @@ const CategoryPage = () => {
       ? category.charAt(0).toUpperCase() + category.slice(1)
       : "Category");
 
-  // Navigation buttons
   const otherCategory =
     category === "hub" ? "mid" : category === "mid" ? "hub" : null;
   const otherLabel =
@@ -86,61 +81,76 @@ const CategoryPage = () => {
       ? "Hub-Drive"
       : null;
 
-  // Sort products on render
   const sortedProducts = getSortedProducts(products, sort);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
       <div className="relative z-10 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <motion.h1
-          className="text-center text-4xl sm:text-5xl font-bold text-white mb-1"
-          initial={{ opacity: 0, y: -24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          {heading}
-        </motion.h1>
-        <motion.p
-          className="text-center text-emerald-300 mb-10 text-lg max-w-2xl mx-auto"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          {categoryDescriptions[category] ||
-            "Explore our latest models in this category."}
-        </motion.p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={category}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.35, ease: "easeInOut" }}
+          >
+            <h1 className="text-center text-4xl sm:text-5xl font-bold text-white mb-1">
+              {heading}
+            </h1>
+            <p className="text-center text-emerald-300 mb-10 text-lg max-w-2xl mx-auto">
+              {categoryDescriptions[category] ||
+                "Explore our latest models in this category."}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Controls: Centered row with spacing */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 gap-x-6 mb-8 w-full">
-          {otherCategory && (
-            <button
-              onClick={() => navigate(`/category/${otherCategory}`)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 text-emerald-100 hover:bg-emerald-600 font-semibold shadow transition-all"
-            >
-              <LuMoveRight className="w-5 h-5" />
-              {otherLabel}
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <label htmlFor="sort" className="text-emerald-300 font-medium">
-              Sort by
-            </label>
-            <select
-              id="sort"
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            >
-              {sortOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {/* Animated controls, centered, with order swapped */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={category + sort}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.38, ease: "easeInOut" }}
+          >
+            {/* Sort dropdown first */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort" className="text-emerald-300 font-medium">
+                Sort by
+              </label>
+              <select
+                id="sort"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                {sortOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Switch category button second */}
+            {otherCategory && (
+              <motion.button
+                key={otherCategory}
+                onClick={() => navigate(`/category/${otherCategory}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 text-emerald-100 hover:bg-emerald-600 font-semibold shadow transition-all"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.32, ease: "easeInOut" }}
+              >
+                <LuMoveRight className="w-5 h-5" />
+                {otherLabel}
+              </motion.button>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-        {/* AnimatePresence + key for fluid sort animation */}
+        {/* Products grid */}
         <AnimatePresence mode="wait">
           <motion.div
             key={sort}
