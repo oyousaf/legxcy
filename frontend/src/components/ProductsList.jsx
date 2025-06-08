@@ -226,8 +226,7 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      {/* Filters and sort */}
-      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
+      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center z">
         {FILTERS.map(({ label, value }) => (
           <button
             key={value}
@@ -238,22 +237,15 @@ const ProductsList = () => {
                 : "bg-emerald-900 border-emerald-700 text-emerald-300 hover:bg-emerald-700"
             }`}
             aria-pressed={filter === value}
-            type="button"
           >
             {label}
           </button>
         ))}
-        <label htmlFor="sort-products" className="sr-only">
-          Sort products
-        </label>
         <select
-          id="sort-products"
-          name="sort-products"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer"
           aria-label="Sort products"
-          autoComplete="off"
         >
           {SORTS.map(({ label, value }) => (
             <option
@@ -266,14 +258,8 @@ const ProductsList = () => {
           ))}
         </select>
       </div>
-      {/* Search */}
       <div className="flex justify-center mb-6">
-        <label htmlFor="product-search" className="sr-only">
-          Search products
-        </label>
         <input
-          id="product-search"
-          name="product-search"
           type="text"
           placeholder="Search..."
           value={search}
@@ -318,7 +304,6 @@ const ProductsList = () => {
                   }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {/* Action Bar */}
                   <div
                     className="absolute flex justify-between items-center left-0 right-0 top-0 px-3 pt-3 z-10 pointer-events-none"
                     style={{ minHeight: "48px" }}
@@ -339,7 +324,6 @@ const ProductsList = () => {
                             : "Only admins can change featured status"
                         }
                         aria-label="Toggle featured"
-                        type="button"
                       >
                         {starToggling ? (
                           <span className="w-5 h-5 block animate-spin rounded-full border-t-2 border-b-2 border-emerald-800" />
@@ -357,7 +341,6 @@ const ProductsList = () => {
                             disabled={!isAdmin || savingEdit}
                             title="Save changes"
                             aria-label="Save"
-                            type="button"
                           >
                             <FiSave className="h-5 w-5" />
                           </button>
@@ -367,7 +350,6 @@ const ProductsList = () => {
                             disabled={savingEdit}
                             title="Cancel"
                             aria-label="Cancel"
-                            type="button"
                           >
                             <FiX className="h-5 w-5" />
                           </button>
@@ -388,7 +370,6 @@ const ProductsList = () => {
                               isAdmin ? "Edit product" : "Only admins can edit"
                             }
                             aria-label="Edit"
-                            type="button"
                           >
                             <FiEdit2 className="h-5 w-5" />
                           </button>
@@ -408,7 +389,6 @@ const ProductsList = () => {
                                 : "Only admins can delete"
                             }
                             aria-label="Delete product"
-                            type="button"
                           >
                             <GoTrash className="h-5 w-5" />
                           </button>
@@ -416,7 +396,6 @@ const ProductsList = () => {
                       )}
                     </div>
                   </div>
-                  {/* Product Info / Editing */}
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-14 px-4 pb-6">
                     <img
                       src={product.image}
@@ -433,7 +412,10 @@ const ProductsList = () => {
                             handleSaveEdit(product);
                           }}
                         >
-                          <label htmlFor={`edit-name-${getId(product)}`} className="sr-only">
+                          <label
+                            htmlFor={`edit-name-${getId(product)}`}
+                            className="sr-only"
+                          >
                             Name
                           </label>
                           <input
@@ -453,7 +435,10 @@ const ProductsList = () => {
                             autoComplete="name"
                           />
 
-                          <label htmlFor={`edit-category-${getId(product)}`} className="sr-only">
+                          <label
+                            htmlFor={`edit-category-${getId(product)}`}
+                            className="sr-only"
+                          >
                             Category
                           </label>
                           <select
@@ -476,7 +461,10 @@ const ProductsList = () => {
                             <option value="mid">Mid-Drive</option>
                           </select>
 
-                          <label htmlFor={`edit-price-${getId(product)}`} className="sr-only">
+                          <label
+                            htmlFor={`edit-price-${getId(product)}`}
+                            className="sr-only"
+                          >
                             Price
                           </label>
                           <input
@@ -499,7 +487,10 @@ const ProductsList = () => {
                             autoComplete="off"
                           />
 
-                          <label htmlFor={`edit-description-${getId(product)}`} className="sr-only">
+                          <label
+                            htmlFor={`edit-description-${getId(product)}`}
+                            className="sr-only"
+                          >
                             Description
                           </label>
                           <textarea
@@ -536,7 +527,6 @@ const ProductsList = () => {
                       )}
                     </div>
                   </div>
-                  {/* Loader */}
                   {loading && (
                     <div className="absolute inset-0 bg-emerald-950/80 flex items-center justify-center z-20">
                       <div className="loader animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
