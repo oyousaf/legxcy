@@ -107,7 +107,7 @@ const CategoryPage = () => {
         {/* Animated controls, centered, with order swapped */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={category + sort}
+            key={category}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
