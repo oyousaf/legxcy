@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GoTrash } from "react-icons/go";
 import { FaStar } from "react-icons/fa6";
@@ -64,6 +64,8 @@ function ConfirmModal({ open, onConfirm, onCancel, productName }) {
   );
 }
 
+const getId = (p) => p.id ?? p._id;
+
 const ProductsList = () => {
   const {
     deleteProduct,
@@ -74,8 +76,6 @@ const ProductsList = () => {
     fetchAllProducts,
   } = useProductStore();
   const { profile } = useUserStore();
-
-  const safeProducts = Array.isArray(products) ? products : [];
 
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("newest");
@@ -93,38 +93,38 @@ const ProductsList = () => {
   const [togglingStar, setTogglingStar] = useState({});
 
   const isAdmin = profile?.role === "admin";
-  const getId = (product) => product.id ?? product._id;
+  const safeProducts = Array.isArray(products) ? products : [];
 
-  let filtered = safeProducts;
-  if (filter === "featured") {
-    filtered = filtered.filter((p) => p.isFeatured);
-  } else if (filter) {
-    filtered = filtered.filter((p) => p.category === filter);
-  }
-  if (search.trim()) {
-    filtered = filtered.filter((p) =>
-      p.name.toLowerCase().includes(search.trim().toLowerCase())
-    );
-  }
+  // UseMemo to avoid recalculating on every render
+  const filteredSortedProducts = useMemo(() => {
+    let filtered = safeProducts;
+    if (filter === "featured") filtered = filtered.filter((p) => p.isFeatured);
+    else if (filter) filtered = filtered.filter((p) => p.category === filter);
 
-  const sortedProducts = [...filtered].sort((a, b) => {
-    switch (sort) {
-      case "az":
-        return a.name.localeCompare(b.name);
-      case "za":
-        return b.name.localeCompare(a.name);
-      case "price-asc":
-        return (a.price ?? 0) - (b.price ?? 0);
-      case "price-desc":
-        return (b.price ?? 0) - (a.price ?? 0);
-      case "newest":
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      case "oldest":
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      default:
-        return 0;
-    }
-  });
+    if (search.trim())
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(search.trim().toLowerCase())
+      );
+
+    return [...filtered].sort((a, b) => {
+      switch (sort) {
+        case "az":
+          return a.name.localeCompare(b.name);
+        case "za":
+          return b.name.localeCompare(a.name);
+        case "price-asc":
+          return (a.price ?? 0) - (b.price ?? 0);
+        case "price-desc":
+          return (b.price ?? 0) - (a.price ?? 0);
+        case "newest":
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case "oldest":
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        default:
+          return 0;
+      }
+    });
+  }, [safeProducts, filter, search, sort]);
 
   const startEdit = (product) => {
     setEditing(getId(product));
@@ -161,7 +161,7 @@ const ProductsList = () => {
       });
       setEditing(null);
       setTimeout(fetchAllProducts, 1300);
-      toast.success("Product updated!")
+      toast.success("Product updated!");
     } catch (err) {
       toast.error("Could not update product.");
       setProducts(prevProducts);
@@ -173,15 +173,11 @@ const ProductsList = () => {
 
   const handleCancelEdit = () => {
     setEditing(null);
-    setEditValues({
-      name: "",
-      category: "",
-      price: "",
-      description: "",
-    });
+    setEditValues({ name: "", category: "", price: "", description: "" });
   };
 
   const handleDelete = (id, name) => setConfirmDelete({ id, name });
+
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
     setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: true }));
@@ -190,7 +186,7 @@ const ProductsList = () => {
     try {
       await deleteProduct(confirmDelete.id);
       setTimeout(fetchAllProducts, 1300);
-    } catch (e) {
+    } catch {
       toast.error("Could not delete product.");
       setProducts(prevProducts);
     }
@@ -199,28 +195,21 @@ const ProductsList = () => {
   };
 
   const handleToggleFeatured = async (product) => {
-    if (!isAdmin) {
-      toast.error("Admin access required.");
-      return;
-    }
+    if (!isAdmin) return toast.error("Admin access required.");
     const prodId = getId(product);
     const newValue = !product.isFeatured;
-
     setTogglingStar((prev) => ({ ...prev, [prodId]: true }));
 
-    // Optimistic UI update
     setProducts((prev) =>
       prev.map((p) =>
         getId(p) === prodId ? { ...p, isFeatured: newValue } : p
       )
     );
-
     try {
       const ok = await toggleFeaturedProduct(prodId, newValue);
-      if (!ok) throw new Error("Could not update featured status");
+      if (!ok) throw new Error();
       await fetchAllProducts();
-    } catch (err) {
-      // Rollback optimistic update if error
+    } catch {
       setProducts((prev) =>
         prev.map((p) =>
           getId(p) === prodId ? { ...p, isFeatured: product.isFeatured } : p
@@ -239,7 +228,7 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
-      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center z">
+      <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
             key={value}
@@ -284,7 +273,7 @@ const ProductsList = () => {
       </div>
       <div className="grid gap-6 grid-cols-1">
         <AnimatePresence>
-          {sortedProducts.length === 0 ? (
+          {filteredSortedProducts.length === 0 ? (
             <motion.div
               className="col-span-full text-center py-8 text-gray-300 text-lg"
               key="empty"
@@ -295,14 +284,15 @@ const ProductsList = () => {
               No products found.
             </motion.div>
           ) : (
-            sortedProducts.map((product, i) => {
-              const isEditing = editing === getId(product);
-              const loading = optimisticLoading[getId(product)];
-              const isModalOpen = confirmDelete?.id === getId(product);
-              const starToggling = togglingStar[getId(product)];
+            filteredSortedProducts.map((product, i) => {
+              const id = getId(product);
+              const isEditing = editing === id;
+              const loading = optimisticLoading[id];
+              const isModalOpen = confirmDelete?.id === id;
+              const starToggling = togglingStar[id];
               return (
                 <motion.div
-                  key={getId(product)}
+                  key={id}
                   className={`relative bg-emerald-900 rounded-xl shadow p-0 overflow-hidden ${
                     loading ? "opacity-70 pointer-events-none" : ""
                   }`}
@@ -371,10 +361,8 @@ const ProductsList = () => {
                         <>
                           <button
                             onClick={() => {
-                              if (!isAdmin) {
-                                toast.error("Admin access required.");
-                                return;
-                              }
+                              if (!isAdmin)
+                                return toast.error("Admin access required.");
                               startEdit(product);
                             }}
                             className="p-2 text-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full transition"
@@ -388,11 +376,9 @@ const ProductsList = () => {
                           </button>
                           <button
                             onClick={() => {
-                              if (!isAdmin) {
-                                toast.error("Admin access required.");
-                                return;
-                              }
-                              handleDelete(getId(product), product.name);
+                              if (!isAdmin)
+                                return toast.error("Admin access required.");
+                              handleDelete(id, product.name);
                             }}
                             className="p-2 text-red-400 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-full transition"
                             disabled={!isAdmin || loading}
@@ -426,13 +412,13 @@ const ProductsList = () => {
                           }}
                         >
                           <label
-                            htmlFor={`edit-name-${getId(product)}`}
+                            htmlFor={`edit-name-${id}`}
                             className="sr-only"
                           >
                             Name
                           </label>
                           <input
-                            id={`edit-name-${getId(product)}`}
+                            id={`edit-name-${id}`}
                             name="name"
                             className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
                             value={editValues.name}
@@ -447,15 +433,14 @@ const ProductsList = () => {
                             placeholder="Name"
                             autoComplete="name"
                           />
-
                           <label
-                            htmlFor={`edit-category-${getId(product)}`}
+                            htmlFor={`edit-category-${id}`}
                             className="sr-only"
                           >
                             Category
                           </label>
                           <select
-                            id={`edit-category-${getId(product)}`}
+                            id={`edit-category-${id}`}
                             name="category"
                             className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
                             value={editValues.category}
@@ -473,15 +458,14 @@ const ProductsList = () => {
                             <option value="hub">Hub-Drive</option>
                             <option value="mid">Mid-Drive</option>
                           </select>
-
                           <label
-                            htmlFor={`edit-price-${getId(product)}`}
+                            htmlFor={`edit-price-${id}`}
                             className="sr-only"
                           >
                             Price
                           </label>
                           <input
-                            id={`edit-price-${getId(product)}`}
+                            id={`edit-price-${id}`}
                             name="price"
                             className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
                             type="number"
@@ -499,15 +483,14 @@ const ProductsList = () => {
                             placeholder="Price"
                             autoComplete="off"
                           />
-
                           <label
-                            htmlFor={`edit-description-${getId(product)}`}
+                            htmlFor={`edit-description-${id}`}
                             className="sr-only"
                           >
                             Description
                           </label>
                           <textarea
-                            id={`edit-description-${getId(product)}`}
+                            id={`edit-description-${id}`}
                             name="description"
                             className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1 min-h-[60px]"
                             value={editValues.description}
