@@ -22,7 +22,7 @@ const HomePage = () => {
   }, [fetchFeaturedProducts]);
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800 text-white overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800 overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
           <img
