@@ -75,6 +75,8 @@ const ProductsList = () => {
   } = useProductStore();
   const { profile } = useUserStore();
 
+  const safeProducts = Array.isArray(products) ? products : [];
+
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
@@ -93,7 +95,7 @@ const ProductsList = () => {
   const isAdmin = profile?.role === "admin";
   const getId = (product) => product.id ?? product._id;
 
-  let filtered = products;
+  let filtered = safeProducts;
   if (filter === "featured") {
     filtered = filtered.filter((p) => p.isFeatured);
   } else if (filter) {
@@ -104,6 +106,7 @@ const ProductsList = () => {
       p.name.toLowerCase().includes(search.trim().toLowerCase())
     );
   }
+
   const sortedProducts = [...filtered].sort((a, b) => {
     switch (sort) {
       case "az":
@@ -136,8 +139,8 @@ const ProductsList = () => {
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
     setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
-    const prevProducts = [...products];
-    const idx = products.findIndex((p) => getId(p) === getId(product));
+    const prevProducts = [...safeProducts];
+    const idx = safeProducts.findIndex((p) => getId(p) === getId(product));
     const updated = {
       ...product,
       name: editValues.name,
@@ -145,7 +148,7 @@ const ProductsList = () => {
       price: Number(editValues.price),
       description: editValues.description,
     };
-    const optimistic = [...products];
+    const optimistic = [...safeProducts];
     optimistic[idx] = updated;
     setProducts(optimistic);
 
@@ -181,8 +184,8 @@ const ProductsList = () => {
   const handleConfirmDelete = async () => {
     if (!confirmDelete) return;
     setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: true }));
-    const prevProducts = [...products];
-    setProducts(products.filter((p) => getId(p) !== confirmDelete.id));
+    const prevProducts = [...safeProducts];
+    setProducts(safeProducts.filter((p) => getId(p) !== confirmDelete.id));
     try {
       await deleteProduct(confirmDelete.id);
       setTimeout(fetchAllProducts, 1300);
@@ -200,19 +203,29 @@ const ProductsList = () => {
       return;
     }
     const prodId = getId(product);
+    const newValue = !product.isFeatured;
+
     setTogglingStar((prev) => ({ ...prev, [prodId]: true }));
-    const prevProducts = [...products];
-    const idx = products.findIndex((p) => getId(p) === prodId);
-    const optimistic = [...products];
-    optimistic[idx] = { ...product, isFeatured: !product.isFeatured };
-    setProducts(optimistic);
+
+    // Optimistic UI update
+    setProducts((prev) =>
+      prev.map((p) =>
+        getId(p) === prodId ? { ...p, isFeatured: newValue } : p
+      )
+    );
 
     try {
-      await toggleFeaturedProduct(prodId);
-      setTimeout(fetchAllProducts, 1100);
+      const ok = await toggleFeaturedProduct(prodId, newValue);
+      if (!ok) throw new Error("Could not update featured status");
+      await fetchAllProducts();
     } catch (err) {
-      toast.error("Could not update product.");
-      setProducts(prevProducts);
+      // Rollback optimistic update if error
+      setProducts((prev) =>
+        prev.map((p) =>
+          getId(p) === prodId ? { ...p, isFeatured: product.isFeatured } : p
+        )
+      );
+      // toast is already shown by store, but could show another if you want
     } finally {
       setTogglingStar((prev) => ({ ...prev, [prodId]: false }));
     }

@@ -110,21 +110,20 @@ export const useProductStore = create((set, get) => ({
   },
 
   // TOGGLE FEATURED (Admin)
-  toggleFeaturedProduct: async (productId) => {
+  toggleFeaturedProduct: async (productId, newValue) => {
     set({ loading: true });
     try {
-      const product = get().products.find((p) => p.id === productId);
-      if (!product) throw new Error("Product not found");
       const { error } = await supabase
         .from("products")
-        .update({ isFeatured: !product.isFeatured })
+        .update({ isFeatured: newValue })
         .eq("id", productId);
 
       if (error) throw error;
       toast.success("Product updated!");
-      await get().fetchAllProducts();
+      return true;
     } catch (error) {
       toast.error(getErrorMsg(error));
+      return false;
     } finally {
       set({ loading: false });
     }
