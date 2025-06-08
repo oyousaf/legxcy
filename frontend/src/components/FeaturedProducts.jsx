@@ -110,7 +110,7 @@ const FeaturedProducts = ({ featuredProducts = [] }) => {
                         {product.description}
                       </p>
                       <div className="flex flex-col gap-3 items-center mt-auto">
-                        <span className="text-2xl font-extrabold text-emerald-300 drop-shadow-sm">
+                        <span className="text-2xl font-extrabold text-gray-200 drop-shadow-sm">
                           £{product.price.toFixed()}
                         </span>
                         <button
