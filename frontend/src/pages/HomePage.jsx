@@ -38,7 +38,7 @@ const HomePage = () => {
         </motion.div>
 
         <motion.p
-          className="text-center text-lg md:text-xl text-gray-300 mb-7"
+          className="text-center text-lg md:text-xl text-gray-200 mb-7"
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
