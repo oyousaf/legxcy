@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useProductStore } from "../stores/useProductStore";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../components/ProductCard";
+import { LuMoveRight } from "react-icons/lu";
 
 const skeletons = Array(8).fill(0);
 
@@ -13,17 +14,55 @@ const categoryHeadings = {
 
 const categoryDescriptions = {
   hub: "Hub-drive motors are celebrated for their simplicity, quiet performance, and low maintenance. Positioned in the wheel, these motors provide a smooth, natural boost to your ride, making them perfect for city commutes and leisurely journeys. Hub-drive e-bikes are often lighter, more affordable, and offer a reliable, hassle-free cycling experience for both new and seasoned riders.",
-  mid: "Mid-drive motors excel at delivering optimal power and efficiency, especially when tackling steep hills and long distances. Located at the bike’s crank, these motors work harmoniously with your gears, providing enhanced torque and a natural, balanced ride feel. Mid-drive e-bikes are perfect for demanding routes and adventurous cyclists who value performance, control, and the ability to conquer challenging terrain."
+  mid: "Mid-drive motors excel at delivering optimal power and efficiency, especially when tackling steep hills and long distances. Located at the bike’s crank, these motors work harmoniously with your gears, providing enhanced torque and a natural, balanced ride feel. Mid-drive e-bikes are perfect for demanding routes and adventurous cyclists who value performance, control, and the ability to conquer challenging terrain.",
+};
+
+const sortOptions = [
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+  { label: "A–Z", value: "az" },
+  { label: "Z–A", value: "za" },
+  { label: "Price: Low–High", value: "price-asc" },
+  { label: "Price: High–Low", value: "price-desc" },
+];
+
+const getSortedProducts = (products, sort) => {
+  let arr = [...products];
+  switch (sort) {
+    case "az":
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case "za":
+      arr.sort((a, b) => b.name.localeCompare(a.name));
+      break;
+    case "price-asc":
+      arr.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+      break;
+    case "price-desc":
+      arr.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+      break;
+    case "oldest":
+      arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      break;
+    case "newest":
+    default:
+      arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      break;
+  }
+  return arr;
 };
 
 const CategoryPage = () => {
   const { fetchProductsByCategory, products, loading } = useProductStore();
   const { category } = useParams();
+  const navigate = useNavigate();
+
+  // Sorting state
+  const [sort, setSort] = useState("newest");
 
   // Clear products immediately on category change for instant skeletons
   useEffect(() => {
     useProductStore.setState({ products: [] });
-    // eslint-disable-next-line
   }, [category]);
 
   // Fetch products after clearing them
@@ -37,11 +76,24 @@ const CategoryPage = () => {
       ? category.charAt(0).toUpperCase() + category.slice(1)
       : "Category");
 
+  // Navigation buttons
+  const otherCategory =
+    category === "hub" ? "mid" : category === "mid" ? "hub" : null;
+  const otherLabel =
+    otherCategory === "mid"
+      ? "Mid-Drive"
+      : otherCategory === "hub"
+      ? "Hub-Drive"
+      : null;
+
+  // Sort products on render
+  const sortedProducts = getSortedProducts(products, sort);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
       <div className="relative z-10 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <motion.h1
-          className="text-center text-4xl sm:text-5xl font-bold text-emerald-400 mb-1"
+          className="text-center text-4xl sm:text-5xl font-bold text-white mb-1"
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -58,13 +110,46 @@ const CategoryPage = () => {
             "Explore our latest models in this category."}
         </motion.p>
 
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 justify-items-center"
-          initial={false}
-          animate={{ opacity: loading ? 0.5 : 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <AnimatePresence mode="wait">
+        {/* Controls: Centered row with spacing */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 gap-x-6 mb-8 w-full">
+          {otherCategory && (
+            <button
+              onClick={() => navigate(`/category/${otherCategory}`)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 text-emerald-100 hover:bg-emerald-600 font-semibold shadow transition-all"
+            >
+              <LuMoveRight className="w-5 h-5" />
+              {otherLabel}
+            </button>
+          )}
+          <div className="flex items-center gap-2">
+            <label htmlFor="sort" className="text-emerald-300 font-medium">
+              Sort by
+            </label>
+            <select
+              id="sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* AnimatePresence + key for fluid sort animation */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={sort}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.32, ease: "easeInOut" }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7 justify-items-center"
+          >
             {loading ? (
               skeletons.map((_, idx) => (
                 <motion.div
@@ -76,7 +161,7 @@ const CategoryPage = () => {
                   transition={{ duration: 0.45, ease: "easeInOut" }}
                 />
               ))
-            ) : products?.length === 0 ? (
+            ) : sortedProducts?.length === 0 ? (
               <motion.h2
                 className="text-3xl font-semibold text-gray-300 text-center col-span-full"
                 initial={{ opacity: 0, y: 10 }}
@@ -85,14 +170,14 @@ const CategoryPage = () => {
                 No products found
               </motion.h2>
             ) : (
-              products?.map((product, idx) => (
+              sortedProducts?.map((product, idx) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 24, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{
-                    duration: 0.45,
+                    duration: 0.35,
                     delay: idx * 0.04,
                     ease: [0.4, 0.12, 0.3, 1],
                   }}
@@ -102,8 +187,8 @@ const CategoryPage = () => {
                 </motion.div>
               ))
             )}
-          </AnimatePresence>
-        </motion.div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

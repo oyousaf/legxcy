@@ -29,7 +29,7 @@ const ProductCard = ({ product }) => {
       </div>
 
       <div className="flex flex-col items-center mt-4 px-6 pb-6 w-full">
-        <h5 className="text-xl font-semibold text-white text-center">
+        <h5 className="text-xl font-semibold text-gray-200 text-center">
           {product.name}
         </h5>
         {product.description && (
