@@ -161,6 +161,7 @@ const ProductsList = () => {
       });
       setEditing(null);
       setTimeout(fetchAllProducts, 1300);
+      toast.success("Product updated!")
     } catch (err) {
       toast.error("Could not update product.");
       setProducts(prevProducts);
@@ -225,7 +226,6 @@ const ProductsList = () => {
           getId(p) === prodId ? { ...p, isFeatured: product.isFeatured } : p
         )
       );
-      // toast is already shown by store, but could show another if you want
     } finally {
       setTogglingStar((prev) => ({ ...prev, [prodId]: false }));
     }
