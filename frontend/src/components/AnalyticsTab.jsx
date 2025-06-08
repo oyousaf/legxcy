@@ -145,7 +145,7 @@ const AnalyticsTab = () => {
           color="from-emerald-500 to-emerald-700"
         />
         <AnalyticsCard
-          title="Total Sales"
+          title="Total Orders"
           value={loadingStats ? "..." : analyticsData.totalSales.toLocaleString()}
           icon={FaCartShopping}
           color="from-emerald-500 to-teal-700"

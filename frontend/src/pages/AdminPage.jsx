@@ -40,6 +40,18 @@ function TabErrorBoundary({ children }) {
   }
 }
 
+const pageVariants = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  exit: { opacity: 0, y: 30, transition: { duration: 0.3 } },
+};
+
+const tabBarVariants = {
+  initial: { opacity: 0, y: -15 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.3 } },
+  exit: { opacity: 0, y: -15, transition: { duration: 0.2 } },
+};
+
 const AdminPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,66 +97,81 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="relative z-10 container mx-auto px-4 py-16">
-        <motion.h1
-          className="text-4xl font-bold mb-8 text-emerald-400 text-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          Admin Dashboard
-        </motion.h1>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key="admin-dashboard-root"
+        className="min-h-screen relative overflow-hidden"
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <div className="relative z-10 container mx-auto px-4 py-16">
+          <motion.h1
+            className="text-4xl font-bold mb-8 text-emerald-400 text-center"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            Admin Dashboard
+          </motion.h1>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              aria-selected={activeTab === tab.id}
-              tabIndex={0}
-              className={`flex items-center px-4 py-2 mx-2 rounded-md transition-colors duration-200 outline-none focus:ring-2 focus:ring-emerald-400 ${
-                activeTab === tab.id
-                  ? "bg-emerald-600 text-white"
-                  : "bg-emerald-700 text-gray-300 hover:bg-emerald-600"
-              }`}
-              disabled={checkingAuth || !user || !profile}
-              onKeyDown={e => handleTabKeyDown(e, tab.id)}
-              aria-label={tab.label}
-              role="tab"
-            >
-              <tab.icon className="mr-2 h-5 w-5" />
-              {tab.label}
-            </button>
-          ))}
+          <motion.div
+            className="flex flex-wrap justify-center gap-2 mb-8"
+            variants={tabBarVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-selected={activeTab === tab.id}
+                tabIndex={0}
+                className={`flex items-center px-4 py-2 mx-2 rounded-md transition-colors duration-200 outline-none focus:ring-2 focus:ring-emerald-400 ${
+                  activeTab === tab.id
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-700 text-gray-300 hover:bg-emerald-600"
+                }`}
+                disabled={checkingAuth || !user || !profile}
+                onKeyDown={e => handleTabKeyDown(e, tab.id)}
+                aria-label={tab.label}
+                role="tab"
+              >
+                <tab.icon className="mr-2 h-5 w-5" />
+                {tab.label}
+              </button>
+            ))}
+          </motion.div>
+
+          {checkingAuth || !user || !profile ? (
+            <div>
+              <div className={skeletonClass} />
+              <div className={skeletonClass} />
+              <div className={skeletonClass} />
+            </div>
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TabErrorBoundary>
+                  {activeTab === "add" && <AddProductForm />}
+                  {activeTab === "products" && <ProductsList />}
+                  {activeTab === "analytics" && <AnalyticsTab />}
+                </TabErrorBoundary>
+              </motion.div>
+            </AnimatePresence>
+          )}
         </div>
-
-        {checkingAuth || !user || !profile ? (
-          <div>
-            <div className={skeletonClass} />
-            <div className={skeletonClass} />
-            <div className={skeletonClass} />
-          </div>
-        ) : (
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              <TabErrorBoundary>
-                {activeTab === "add" && <AddProductForm />}
-                {activeTab === "products" && <ProductsList />}
-                {activeTab === "analytics" && <AnalyticsTab />}
-              </TabErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
-        )}
-      </div>
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
