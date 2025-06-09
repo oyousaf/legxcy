@@ -53,16 +53,21 @@ export default function ProfileModal({ open, onClose }) {
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
+  const { updateProfile } = useUserStore();
+
   const saveProfile = async () => {
     setSaving(true);
-    let { error } = await supabase
-      .from("profiles")
-      .update({ name: form.name, email: form.email })
-      .eq("id", user.id); // fixed bug here
+    if (form.email !== profile.email) {
+      const { error: emailErr } = await supabase.auth.updateUser({
+        email: form.email,
+      });
+      if (emailErr) {
+        setSaving(false);
+        return toast.error(emailErr.message || "Failed to update email");
+      }
+    }
+    await updateProfile({ name: form.name, email: form.email });
     setSaving(false);
-    if (error) return toast.error("Could not update profile");
-    toast.success("Profile updated!");
-    setProfile({ ...profile, name: form.name, email: form.email });
     setEdit(false);
   };
 
