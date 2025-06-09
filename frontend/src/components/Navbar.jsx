@@ -7,10 +7,14 @@ import { LuLogIn, LuLogOut } from "react-icons/lu";
 import { GoHomeFill } from "react-icons/go";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
+import { useState } from "react";
+
+import ProfileModal from "./ProfileModal";
 
 const Navbar = () => {
   const { user, profile, logout } = useUserStore();
   const isAdmin = profile?.role === "admin";
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const { cart } = useCartStore();
 
   return (
@@ -58,14 +62,29 @@ const Navbar = () => {
 
             {user ? (
               <>
-                {/* Show name/email/profile if desired */}
-                <span className="text-white px-3">
-                  {profile?.name ? `Hi, ${profile.name}` : user.email}
-                  {isAdmin && <b> (Admin)</b>}
-                </span>
+                {!isAdmin ? (
+                  <button
+                    onClick={() => setProfileModalOpen(true)}
+                    className="text-white px-3 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+                    aria-label="Open profile"
+                    type="button"
+                  >
+                    {profile?.name ? `Hi, ${profile.name}` : user.email}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setProfileModalOpen(true)}
+                    className="text-white px-3 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+                    aria-label="Open admin profile"
+                    type="button"
+                  >
+                    {profile?.name ? `Hi, ${profile.name}` : user.email}{" "}
+                    <b>(Admin)</b>
+                  </button>
+                )}
+
                 <button
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-4 rounded-md flex items-center transition duration-300
-            ease-in-out"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-4 rounded-md flex items-center transition duration-300 ease-in-out"
                   onClick={logout}
                 >
                   <LuLogOut size={18} />
@@ -94,6 +113,12 @@ const Navbar = () => {
               </>
             )}
           </nav>
+          {profileModalOpen && (
+            <ProfileModal
+              open={profileModalOpen}
+              onClose={() => setProfileModalOpen(false)}
+            />
+          )}
         </div>
       </div>
     </header>
