@@ -32,15 +32,22 @@ app.use(
   })
 );
 
+// Register only the webhook endpoint before express.json
+app.use("/api/payments/webhook", paymentRoutes);
+
+// Parse JSON for all other endpoints
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
+// Register all other routes as usual
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
-app.use("/api/payments", paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
+
+// Register all other /api/payments (besides /webhook) after express.json
+app.use("/api/payments", paymentRoutes);
 
 app.listen(PORT, () => {
   console.log("Server is running on http://localhost:" + PORT);
