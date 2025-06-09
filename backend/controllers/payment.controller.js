@@ -23,7 +23,6 @@ export const createCheckoutSession = async (req, res) => {
       quantity: product.quantity || 1,
     }));
 
-    // Coupon logic
     let stripeCouponId = null;
     if (couponCode) {
       const { data: coupon } = await supabase
@@ -72,18 +71,16 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
-// CHECKOUT SUCCESS
+// CHECKOUT SUCCESS (client-side, optional if you use webhooks)
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
-
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
       return res.status(400).json({ message: "Payment not completed." });
     }
 
-    // Deactivate coupon if used
     if (session.metadata.couponCode) {
       await supabase
         .from("coupons")
@@ -92,10 +89,7 @@ export const checkoutSuccess = async (req, res) => {
         .eq("userId", session.metadata.userId);
     }
 
-    // Parse products from metadata
     const products = JSON.parse(session.metadata.products);
-
-    // Insert or update order
     const { data: order, error } = await supabase
       .from("orders")
       .upsert(
@@ -132,50 +126,47 @@ export const checkoutSuccess = async (req, res) => {
 
 // STRIPE WEBHOOK HANDLER
 export const stripeWebhook = async (req, res) => {
-  const sig = req.headers["stripe-signature"];
-  let event;
-
   try {
-    event = stripe.webhooks.constructEvent(
+    const sig = req.headers["stripe-signature"];
+    const event = stripe.webhooks.constructEvent(
       req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+
+      if (session.metadata && session.metadata.couponCode) {
+        await supabase
+          .from("coupons")
+          .update({ isActive: false })
+          .eq("code", session.metadata.couponCode)
+          .eq("userId", session.metadata.userId);
+      }
+
+      if (session.metadata && session.metadata.userId && session.amount_total) {
+        const products = JSON.parse(session.metadata.products || "[]");
+        await supabase.from("orders").upsert(
+          [
+            {
+              userId: session.metadata.userId,
+              products: JSON.stringify(products),
+              totalAmount: session.amount_total / 100,
+              stripeSessionId: session.id,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          { onConflict: "stripeSessionId" }
+        );
+      }
+    } else {
+      console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.status(200).json({ received: true });
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error("Webhook error:", err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
-  // Handle the event
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-
-    // Mark coupon as used if present
-    if (session.metadata && session.metadata.couponCode) {
-      await supabase
-        .from("coupons")
-        .update({ isActive: false })
-        .eq("code", session.metadata.couponCode)
-        .eq("userId", session.metadata.userId);
-    }
-
-    // Insert or update order
-    if (session.metadata && session.metadata.userId && session.amount_total) {
-      const products = JSON.parse(session.metadata.products || "[]");
-      await supabase.from("orders").upsert(
-        [
-          {
-            userId: session.metadata.userId,
-            products: JSON.stringify(products),
-            totalAmount: session.amount_total / 100,
-            stripeSessionId: session.id,
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        { onConflict: "stripeSessionId" }
-      );
-    }
-  }
-
-  res.status(200).json({ received: true });
 };
