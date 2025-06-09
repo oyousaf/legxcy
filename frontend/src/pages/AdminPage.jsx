@@ -59,7 +59,7 @@ const AdminPage = () => {
   const getTabFromURL = useCallback(() => {
     const params = new URLSearchParams(location.search);
     const tab = params.get("tab");
-    return tabs.some(t => t.id === tab) ? tab : "add";
+    return tabs.some((t) => t.id === tab) ? tab : "add";
   }, [location.search]);
 
   const [activeTab, setActiveTab] = useState(getTabFromURL);
@@ -89,7 +89,7 @@ const AdminPage = () => {
       setActiveTab(tabId);
     }
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-      const idx = tabs.findIndex(t => t.id === activeTab);
+      const idx = tabs.findIndex((t) => t.id === activeTab);
       const dir = e.key === "ArrowRight" ? 1 : -1;
       const nextIdx = (idx + dir + tabs.length) % tabs.length;
       setActiveTab(tabs[nextIdx].id);
@@ -136,7 +136,7 @@ const AdminPage = () => {
                     : "bg-emerald-700 text-gray-300 hover:bg-emerald-600"
                 }`}
                 disabled={checkingAuth || !user || !profile}
-                onKeyDown={e => handleTabKeyDown(e, tab.id)}
+                onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
                 aria-label={tab.label}
                 role="tab"
               >

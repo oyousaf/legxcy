@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { FaLock, FaUser, FaArrowLeft } from "react-icons/fa6";
+import { FaLock, FaUser, FaArrowRight } from "react-icons/fa6";
 import { LuMail, LuLoader, LuUserPlus } from "react-icons/lu";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -43,7 +43,6 @@ const RegisterPage = () => {
           Sign up to get started!
         </p>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name */}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaUser className="h-5 w-5 text-emerald-300" />
@@ -59,7 +58,6 @@ const RegisterPage = () => {
               placeholder="Name"
             />
           </div>
-          {/* Email */}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <LuMail className="h-5 w-5 text-emerald-300" />
@@ -75,7 +73,6 @@ const RegisterPage = () => {
               placeholder="Email"
             />
           </div>
-          {/* Password */}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaLock className="h-5 w-5 text-emerald-300" />
@@ -91,7 +88,6 @@ const RegisterPage = () => {
               placeholder="Password"
             />
           </div>
-          {/* Confirm Password */}
           <div className="relative">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaLock className="h-5 w-5 text-emerald-300" />
@@ -107,7 +103,6 @@ const RegisterPage = () => {
               placeholder="Confirm Password"
             />
           </div>
-          {/* Submit Button */}
           <button
             type="submit"
             className="w-full flex justify-center items-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow text-white font-semibold text-lg transition disabled:opacity-60"
@@ -132,8 +127,8 @@ const RegisterPage = () => {
             to="/login"
             className="text-emerald-400 hover:text-emerald-300 font-medium transition"
           >
-            <FaArrowLeft className="inline h-4 w-4 align-middle mr-1" />
-            Back to login
+            Login now
+            <FaArrowRight className="inline h-4 w-4 align-right ml-1" />
           </Link>
         </div>
       </motion.div>
