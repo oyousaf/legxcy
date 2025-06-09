@@ -22,13 +22,13 @@ const allowedOrigins = [
   "https://legxcy.uk",
   "https://www.legxcy.uk",
   "https://legxcy-prod.up.railway.app",
-  "http://localhost:5173",     
+  "http://localhost:5173",
 ];
 
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true, 
+    credentials: true,
   })
 );
 
@@ -41,14 +41,6 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/analytics", analyticsRoutes);
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "/frontend/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-  });
-}
 
 app.listen(PORT, () => {
   console.log("Server is running on http://localhost:" + PORT);
