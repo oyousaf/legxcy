@@ -34,9 +34,9 @@ export const createCheckoutSession = async (req, res) => {
         .eq("isActive", true)
         .single();
 
-      if (coupon && coupon.discount_percentage) {
+      if (coupon && coupon.discountPercentage) {
         const stripeCoupon = await stripe.coupons.create({
-          percent_off: coupon.discount_percentage,
+          percent_off: coupon.discountPercentage,
           duration: "once",
         });
         stripeCouponId = stripeCoupon.id;
