@@ -28,8 +28,13 @@ export default function ProfileModal({ open, onClose }) {
 
   // Fetch profile info on open
   useEffect(() => {
-    if (open && profile)
+    if (open && profile) {
+      document.body.style.overflow = "hidden";
       setForm({ name: profile.name || "", email: profile.email || "" });
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open, profile]);
 
   // Fetch user orders when open
