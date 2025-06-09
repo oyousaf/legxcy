@@ -45,7 +45,7 @@ const HomePage = () => {
           transition={{ delay: 0.2 }}
         >
           Discover high-performance, eco-friendly e-bikes built for adventure
-          and everyday journeys.
+          and everyday journeys
         </motion.p>
 
         <motion.div
