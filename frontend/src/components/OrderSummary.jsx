@@ -41,7 +41,8 @@ const OrderSummary = () => {
     const token = session?.access_token;
 
     try {
-      const res = await fetch("/api/payments/create-checkout-session", {
+      const CLIENT_URL = import.meta.env.VITE_CLIENT_URL;
+      const res = await fetch(`${CLIENT_URL}/api/payments/create-checkout-session`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
