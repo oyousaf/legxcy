@@ -10,4 +10,8 @@ const router = express.Router();
 router.post("/create-checkout-session", protectRoute, createCheckoutSession);
 router.post("/checkout-success", protectRoute, checkoutSuccess);
 
+router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  
+})
+
 export default router;
