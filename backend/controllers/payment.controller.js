@@ -129,3 +129,53 @@ export const checkoutSuccess = async (req, res) => {
     });
   }
 };
+
+// STRIPE WEBHOOK HANDLER
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+
+    // Mark coupon as used if present
+    if (session.metadata && session.metadata.couponCode) {
+      await supabase
+        .from("coupons")
+        .update({ isActive: false })
+        .eq("code", session.metadata.couponCode)
+        .eq("userId", session.metadata.userId);
+    }
+
+    // Insert or update order
+    if (session.metadata && session.metadata.userId && session.amount_total) {
+      const products = JSON.parse(session.metadata.products || "[]");
+      await supabase.from("orders").upsert(
+        [
+          {
+            userId: session.metadata.userId,
+            products: JSON.stringify(products),
+            totalAmount: session.amount_total / 100,
+            stripeSessionId: session.id,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "stripeSessionId" }
+      );
+    }
+  }
+
+  res.status(200).json({ received: true });
+};
