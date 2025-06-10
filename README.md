@@ -11,8 +11,7 @@ Modern, eco-friendly, and packed with advanced features.
 - Responsive design
 - Advanced filtering and sorting
 - Admin dashboard 
-- Customer order history and profile management
-- [Add or remove any that fit your actual app!]
+- Customer order history and profile manageme
 
 ## 🛠️ Tech Stack
 
