@@ -11,6 +11,7 @@ const router = express.Router();
 router.post("/create-checkout-session", protectRoute, createCheckoutSession);
 router.post("/checkout-success", protectRoute, checkoutSuccess);
 
+// Use a raw body **only for this route**
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),
