@@ -22,6 +22,7 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
+// 🟢 CORS first
 app.use(
   cors({
     origin: allowedOrigins,
@@ -29,10 +30,9 @@ app.use(
   })
 );
 
-app.use("/api/payments/webhook", paymentRoutes);
-
-app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
+app.use("/api/payments", paymentRoutes);
+app.use(express.json({ limit: "10mb" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
