@@ -9,6 +9,7 @@ import cartRoutes from "./routes/cart.route.js";
 import couponRoutes from "./routes/coupon.route.js";
 import paymentRoutes from "./routes/payment.route.js";
 import analyticsRoutes from "./routes/analytics.route.js";
+import { stripeWebhook } from "./controllers/payment.controller.js";
 
 dotenv.config();
 
@@ -22,17 +23,24 @@ const allowedOrigins = [
   "http://localhost:5173",
 ];
 
-// 🟢 CORS first
+// Stripe Webhook route 
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook
+);
+
+// Middleware
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
   })
 );
-
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
