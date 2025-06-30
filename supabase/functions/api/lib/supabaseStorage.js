@@ -31,3 +31,20 @@ export async function uploadImageToSupabase(
     return { error };
   }
 }
+
+export async function deleteImageFromSupabase(
+  imageUrl,
+  bucket = "product-images"
+) {
+  try {
+    const url = new URL(imageUrl);
+    const idx = url.pathname.indexOf(bucket);
+    if (idx === -1) return { error: "Invalid bucket in URL" };
+    const fileName = url.pathname.slice(idx + bucket.length + 1);
+
+    const { error } = await supabase.storage.from(bucket).remove([fileName]);
+    return { error };
+  } catch (error) {
+    return { error };
+  }
+}
