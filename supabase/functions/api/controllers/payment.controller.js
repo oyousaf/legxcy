@@ -1,3 +1,4 @@
+// payment.controller.js
 import { supabase } from "../lib/supabase.js";
 import { verifyStripeSignature } from "../lib/stripe-verify.js";
 import { getRawBody } from "../lib/getRawBody.js";
@@ -6,11 +7,14 @@ const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 const WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 const CLIENT_URL = Deno.env.get("CLIENT_URL");
 
-// CREATE CHECKOUT SESSION (via fetch)
 export const createCheckoutSession = async (req, res) => {
   try {
     const { products, couponCode } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized." });
+    }
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: "Invalid or empty products array" });
@@ -94,7 +98,6 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
-// OPTIONAL: CLIENT-SIDE SUCCESS HANDLER
 export const checkoutSuccess = async (req, res) => {
   try {
     const { sessionId } = req.body;
@@ -114,12 +117,14 @@ export const checkoutSuccess = async (req, res) => {
       return res.status(400).json({ message: "Payment not completed." });
     }
 
-    if (session.metadata?.couponCode) {
+    const { userId, couponCode } = session.metadata;
+
+    if (couponCode) {
       await supabase
         .from("coupons")
         .update({ isActive: false })
-        .eq("code", session.metadata.couponCode)
-        .eq("userId", session.metadata.userId);
+        .eq("code", couponCode)
+        .eq("userId", userId);
     }
 
     const products = JSON.parse(session.metadata.products || "[]");
@@ -129,7 +134,7 @@ export const checkoutSuccess = async (req, res) => {
       .upsert(
         [
           {
-            userId: session.metadata.userId,
+            userId,
             products: JSON.stringify(products),
             totalAmount: session.amount_total / 100,
             stripeSessionId: session.id,
@@ -143,17 +148,13 @@ export const checkoutSuccess = async (req, res) => {
 
     if (error) throw error;
 
-    return res.status(200).json({
-      success: true,
-      orderId: order.id,
-    });
+    return res.status(200).json({ success: true, orderId: order.id });
   } catch (error) {
     console.error("Checkout success error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
 
-// STRIPE WEBHOOK HANDLER
 export const stripeWebhook = async (req, res) => {
   try {
     const sig = req.headers["stripe-signature"];
@@ -163,22 +164,23 @@ export const stripeWebhook = async (req, res) => {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      const { userId, couponCode } = session.metadata || {};
 
-      if (session.metadata?.couponCode) {
+      if (couponCode) {
         await supabase
           .from("coupons")
           .update({ isActive: false })
-          .eq("code", session.metadata.couponCode)
-          .eq("userId", session.metadata.userId);
+          .eq("code", couponCode)
+          .eq("userId", userId);
       }
 
-      if (session.metadata?.userId && session.amount_total) {
+      if (userId && session.amount_total) {
         const products = JSON.parse(session.metadata.products || "[]");
 
         await supabase.from("orders").upsert(
           [
             {
-              userId: session.metadata.userId,
+              userId,
               products: JSON.stringify(products),
               totalAmount: session.amount_total / 100,
               stripeSessionId: session.id,
