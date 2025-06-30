@@ -1,8 +1,16 @@
-// Deno-compatible HMAC-SHA256 signature verification
 export async function verifyStripeSignature(payload, sigHeader, secret) {
+  if (!sigHeader || !secret) {
+    throw new Error("Missing Stripe signature or secret");
+  }
+
   const encoder = new TextEncoder();
-  const timestamp = sigHeader.split(",")[0].split("=")[1];
-  const signature = sigHeader.split(",")[1].split("=")[1];
+  const parts = sigHeader.split(",");
+  const timestamp = parts[0]?.split("=")[1];
+  const signature = parts[1]?.split("=")[1];
+
+  if (!timestamp || !signature) {
+    throw new Error("Invalid Stripe signature header format");
+  }
 
   const signedPayload = `${timestamp}.${payload}`;
   const key = await crypto.subtle.importKey(
