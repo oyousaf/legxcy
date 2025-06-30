@@ -19,11 +19,10 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   "https://legxcy.uk",
   "https://www.legxcy.uk",
-  "https://legxcy-prod.up.railway.app",
   "http://localhost:5173",
 ];
 
-// Stripe Webhook route 
+// Stripe Webhook route
 app.post(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
