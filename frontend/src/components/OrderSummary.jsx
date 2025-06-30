@@ -26,37 +26,43 @@ const OrderSummary = () => {
   const handlePayment = async () => {
     if (loading) return;
     setLoading(true);
+
     if (!user) {
       toast.error("Please log in to proceed to checkout.");
       navigate("/login");
       setLoading(false);
       return;
     }
+
     const stripe = await stripePromise;
 
-    // Get user's Supabase access token for secure backend validation
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
     const token = session?.access_token;
+    const BACKEND_URL =
+      import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
     try {
-      const res = await fetch(`/api/payments/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : undefined,
-        },
-        body: JSON.stringify({
-          products: cart,
-          couponCode: coupon ? coupon.code : null,
-        }),
-      });
+      const res = await fetch(
+        `${BACKEND_URL}/api/payments/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : undefined,
+          },
+          body: JSON.stringify({
+            products: cart,
+            couponCode: coupon ? coupon.code : null,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         toast.error(errorData.message || "Failed to start checkout.");
-        setLoading(false);
         return;
       }
 
@@ -119,6 +125,7 @@ const OrderSummary = () => {
               </dd>
             </dl>
           )}
+
           <dl className="flex items-center justify-between gap-4 border-t border-gray-600 pt-2">
             <dt className="text-base font-bold text-white">Total</dt>
             <dd className="text-base font-bold text-emerald-400">
