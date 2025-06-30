@@ -11,4 +11,4 @@ router.get("/", protectRoute, adminRoute, getAnalyticsData);
 
 router.get("/daily", protectRoute, adminRoute, getDailySalesData);
 
-export default router;
+export default router
