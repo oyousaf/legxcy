@@ -76,7 +76,7 @@ export const createCheckoutSession = async (req, res) => {
     }
 
     const body = new URLSearchParams({
-      payment_method_types[]: "card",
+      "payment_method_types[]": "card",
       mode: "payment",
       success_url: `${CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${CLIENT_URL}/purchase-cancel`,
