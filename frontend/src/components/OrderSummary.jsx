@@ -41,21 +41,17 @@ const OrderSummary = () => {
     const token = session?.access_token;
 
     try {
-      const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || "http://localhost:5173";
-      const res = await fetch(
-        `${CLIENT_URL}/api/payments/create-checkout-session`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : undefined,
-          },
-          body: JSON.stringify({
-            products: cart,
-            couponCode: coupon ? coupon.code : null,
-          }),
-        }
-      );
+      const res = await fetch(`/api/payments/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+        body: JSON.stringify({
+          products: cart,
+          couponCode: coupon ? coupon.code : null,
+        }),
+      });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
