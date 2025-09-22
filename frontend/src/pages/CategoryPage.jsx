@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../components/ProductCard";
 import { LuMoveRight } from "react-icons/lu";
+import { FaChevronDown } from "react-icons/fa6";
 
 const skeletons = Array(8).fill(0);
 
@@ -104,7 +105,7 @@ const CategoryPage = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Animated controls, centered, with order swapped */}
+        {/* Animated controls */}
         <AnimatePresence mode="wait">
           <motion.div
             key={category}
@@ -114,25 +115,29 @@ const CategoryPage = () => {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.38, ease: "easeInOut" }}
           >
-            {/* Sort dropdown first */}
+            {/* Sort dropdown */}
             <div className="flex items-center gap-2">
               <label htmlFor="sort" className="text-emerald-300 font-medium">
                 Sort by
               </label>
-              <select
-                id="sort"
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              >
-                {sortOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="sort"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="appearance-none rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  {sortOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+              </div>
             </div>
-            {/* Switch category button second */}
+
+            {/* Switch category */}
             {otherCategory && (
               <motion.button
                 key={otherCategory}
