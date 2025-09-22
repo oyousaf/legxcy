@@ -140,7 +140,7 @@ const CategoryPage = () => {
                 <motion.div
                   animate={{ rotate: sortOpen ? 180 : 0 }}
                   transition={{ duration: 0.25, ease: "easeInOut" }}
-                  className="pointer-events-none absolute right-3 top-0 -translate-y-1/2 text-emerald-400"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400"
                 >
                   <FaChevronDown className="w-4 h-4" />
                 </motion.div>
