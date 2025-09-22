@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../components/ProductCard";
 import { LuMoveRight } from "react-icons/lu";
-import { FaChevronDown } from "react-icons/fa6";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 const skeletons = Array(8).fill(0);
 
@@ -125,6 +125,8 @@ const CategoryPage = () => {
                   id="sort"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
+                  onFocus={() => setSortOpen(true)}
+                  onBlur={() => setSortOpen(false)}
                   className="appearance-none rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 >
                   {sortOptions.map((opt) => (
@@ -133,7 +135,12 @@ const CategoryPage = () => {
                     </option>
                   ))}
                 </select>
-                <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+
+                {sortOpen ? (
+                  <FaChevronUp className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                ) : (
+                  <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                )}
               </div>
             </div>
 
