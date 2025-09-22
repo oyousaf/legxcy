@@ -58,6 +58,7 @@ const CategoryPage = () => {
   const { category } = useParams();
   const navigate = useNavigate();
   const [sort, setSort] = useState("newest");
+  const [sortOpen, setSortOpen] = useState(false);
 
   // Reset and fetch products on category change
   useEffect(() => {
