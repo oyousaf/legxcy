@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useProductStore } from "../stores/useProductStore";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,12 +57,58 @@ const CategoryPage = () => {
   const { fetchProductsByCategory, products, loading } = useProductStore();
   const { category } = useParams();
   const navigate = useNavigate();
+
   const [sort, setSort] = useState("newest");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Keyboard support for dropdown
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!sortOpen) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < sortOptions.length - 1 ? prev + 1 : 0
+        );
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : sortOptions.length - 1
+        );
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setSort(sortOptions[highlightedIndex].value);
+        setSortOpen(false);
+      }
+      if (e.key === "Escape") {
+        setSortOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sortOpen, highlightedIndex]);
 
   // Reset and fetch products on category change
   useEffect(() => {
     useProductStore.setState({ products: [] });
   }, [category]);
+
   useEffect(() => {
     fetchProductsByCategory(category);
   }, [fetchProductsByCategory, category]);
@@ -86,7 +132,8 @@ const CategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
-      <div className="relative z-10 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div className="relative max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        {/* Heading */}
         <AnimatePresence mode="wait">
           <motion.div
             key={category}
@@ -109,7 +156,7 @@ const CategoryPage = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={category}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full relative z-50"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
@@ -117,23 +164,57 @@ const CategoryPage = () => {
           >
             {/* Sort dropdown */}
             <div className="flex items-center gap-2">
-              <label htmlFor="sort" className="text-emerald-300 font-medium">
-                Sort by
-              </label>
-              <div className="relative">
-                <select
-                  id="sort"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="appearance-none rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              <label className="text-emerald-300 font-medium">Sort by</label>
+              <div ref={dropdownRef} className="relative inline-block w-44">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortOpen((prev) => !prev);
+                    setHighlightedIndex(
+                      sortOptions.findIndex((o) => o.value === sort) || 0
+                    );
+                  }}
+                  className="flex items-center justify-between w-full rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 >
-                  {sortOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <FaChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
+                  {sortOptions.find((o) => o.value === sort)?.label}
+                  <motion.span
+                    animate={{ rotate: sortOpen ? 180 : 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="ml-2 text-emerald-400"
+                  >
+                    <FaChevronDown className="w-4 h-4" />
+                  </motion.span>
+                </button>
+
+                <AnimatePresence>
+                  {sortOpen && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute mt-1 w-full rounded-lg bg-emerald-900 border border-emerald-600 shadow-lg"
+                    >
+                      {sortOptions.map((opt, idx) => (
+                        <li
+                          key={opt.value}
+                          onClick={() => {
+                            setSort(opt.value);
+                            setSortOpen(false);
+                          }}
+                          onMouseEnter={() => setHighlightedIndex(idx)}
+                          className={`px-3 py-2 cursor-pointer hover:bg-emerald-800 ${
+                            sort === opt.value ? "bg-emerald-700" : ""
+                          } ${
+                            highlightedIndex === idx ? "bg-emerald-800" : ""
+                          }`}
+                        >
+                          {opt.label}
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
