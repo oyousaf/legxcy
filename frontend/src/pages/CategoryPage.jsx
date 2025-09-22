@@ -125,10 +125,7 @@ const CategoryPage = () => {
                 <select
                   id="sort"
                   value={sort}
-                  onChange={(e) => {
-                    setSort(e.target.value);
-                    setSortOpen(false);
-                  }}
+                  onChange={(e) => setSort(e.target.value)}
                   onFocus={() => setSortOpen(true)}
                   onBlur={() => setSortOpen(false)}
                   className="appearance-none rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -145,7 +142,7 @@ const CategoryPage = () => {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400"
                 >
-                  <FaChevronDown />
+                  <FaChevronDown className="w-4 h-4" />
                 </motion.div>
               </div>
             </div>
