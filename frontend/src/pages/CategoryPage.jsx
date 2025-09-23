@@ -156,7 +156,7 @@ const CategoryPage = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={category}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full relative z-50"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full relative z-10"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
@@ -193,7 +193,7 @@ const CategoryPage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute mt-1 z-10 w-full rounded-lg bg-emerald-900 border border-emerald-600 shadow-lg"
+                      className="absolute mt-1 z-20 w-full rounded-lg bg-emerald-900 border border-emerald-600 shadow-lg"
                     >
                       {sortOptions.map((opt, idx) => (
                         <li
