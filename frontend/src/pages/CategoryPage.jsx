@@ -193,7 +193,7 @@ const CategoryPage = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute mt-1 w-full rounded-lg bg-emerald-900 border border-emerald-600 shadow-lg"
+                      className="absolute mt-1 z-10 w-full rounded-lg bg-emerald-900 border border-emerald-600 shadow-lg"
                     >
                       {sortOptions.map((opt, idx) => (
                         <li
