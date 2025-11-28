@@ -31,7 +31,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const total = sorted.length;
 
   /* -----------------------------------------------------
-     RESPONSIVE: ITEMS PER PAGE
+     RESPONSIVE ITEMS PER PAGE
   ----------------------------------------------------- */
   const [itemsPerPage, setItemsPerPage] = useState(4);
 
@@ -51,7 +51,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const trueOffset = itemsPerPage;
 
   /* -----------------------------------------------------
-     VIRTUAL SLIDES FOR INFINITE LOOPING
+     CREATE VIRTUAL SLIDES (∞ LOOP)
   ----------------------------------------------------- */
   const virtualSlides = useMemo(() => {
     return [
@@ -62,9 +62,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   }, [sorted, itemsPerPage]);
 
   /* -----------------------------------------------------
-     INDEX + NORMALISATION
+     TRUE INFINITE LOOP LOGIC
   ----------------------------------------------------- */
   const [index, setIndex] = useState(0);
+  const [virtualIndex, setVirtualIndex] = useState(trueOffset);
+  const [isAnimating, setIsAnimating] = useState(true);
 
   const normalizeIndex = useCallback(
     (i) => {
@@ -76,12 +78,31 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   );
 
   const next = useCallback(() => {
+    setIsAnimating(true);
+    setVirtualIndex((v) => v + 1);
     setIndex((i) => normalizeIndex(i + 1));
   }, [normalizeIndex]);
 
   const prev = useCallback(() => {
+    setIsAnimating(true);
+    setVirtualIndex((v) => v - 1);
     setIndex((i) => normalizeIndex(i - 1));
   }, [normalizeIndex]);
+
+  /* Silent warp back to real position */
+  useEffect(() => {
+    if (virtualIndex <= 0) {
+      setTimeout(() => {
+        setIsAnimating(false);
+        setVirtualIndex(total);
+      }, 240);
+    } else if (virtualIndex >= total + trueOffset) {
+      setTimeout(() => {
+        setIsAnimating(false);
+        setVirtualIndex(trueOffset);
+      }, 240);
+    }
+  }, [virtualIndex, total, trueOffset]);
 
   /* -----------------------------------------------------
      AUTOPLAY
@@ -101,24 +122,35 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   }, []);
 
   /* -----------------------------------------------------
-     SWIPE
+     SWIPE + MOMENTUM
   ----------------------------------------------------- */
   const dragStartX = useRef(null);
+  const deltaX = useRef(0);
 
   const onTouchStart = (e) => {
     dragStartX.current = e.touches[0].clientX;
+    deltaX.current = 0;
   };
 
-  const onTouchEnd = (e) => {
-    if (!dragStartX.current) return;
-    const diff = e.changedTouches[0].clientX - dragStartX.current;
-    if (diff > SWIPE_THRESHOLD) prev();
-    else if (diff < -SWIPE_THRESHOLD) next();
+  const onTouchMove = (e) => {
+    deltaX.current = e.touches[0].clientX - dragStartX.current;
+  };
+
+  const onTouchEnd = () => {
+    if (Math.abs(deltaX.current) > SWIPE_THRESHOLD) {
+      deltaX.current > 0 ? prev() : next();
+    } else {
+      // momentum flick
+      if (Math.abs(deltaX.current) > 30) {
+        deltaX.current > 0 ? prev() : next();
+      }
+    }
+
     dragStartX.current = null;
   };
 
   /* -----------------------------------------------------
-     CENTER DEPTH LOGIC
+     DEPTH + SCALE
   ----------------------------------------------------- */
   const getDepth = useCallback(
     (virtualIdx) => {
@@ -145,17 +177,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   };
 
   /* -----------------------------------------------------
-     PAGINATION DOTS
-  ----------------------------------------------------- */
-  const totalPages = Math.ceil(total / itemsPerPage);
-  const activePage = Math.floor(index / itemsPerPage);
-
-  /* -----------------------------------------------------
      RENDER
   ----------------------------------------------------- */
   return (
-    <section className="py-16 select-none pt-20">
-      <div className="container mx-auto px-4">
+    <section className="py-16 select-none pt-16">
+      <div className="w-full">
         <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
           Featured
         </h2>
@@ -165,21 +191,24 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           onMouseEnter={() => (isHovering.current = true)}
           onMouseLeave={() => (isHovering.current = false)}
         >
-          {/* SLIDER */}
           <div
-            className="overflow-visible"
+            className="overflow-visible touch-pan-y"
             onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
             <motion.div
-              className="flex"
+              className="flex will-change-transform"
               animate={{
-                x: `-${((index + trueOffset) * 100) / itemsPerPage}%`,
+                x: `-${(virtualIndex * 100) / itemsPerPage}%`,
               }}
-              transition={{
-                type: "spring",
-                stiffness: 160,
-                damping: 22,
+              transition={
+                isAnimating
+                  ? { type: "spring", stiffness: 160, damping: 22 }
+                  : { duration: 0 }
+              }
+              style={{
+                transform: "translateZ(0)",
               }}
             >
               {virtualSlides.map((product, virtualIdx) => {
@@ -273,24 +302,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           >
             <FaChevronRight className="w-6 h-6 text-white" />
           </button>
-        </div>
-
-        {/* DOTS */}
-        <div className="flex justify-center mt-6 gap-2">
-          {Array.from({ length: totalPages }).map((_, p) => (
-            <button
-              key={p}
-              onClick={() => setIndex(p * itemsPerPage)}
-              className={`
-                w-3 h-3 rounded-full transition
-                ${
-                  p === activePage
-                    ? "bg-emerald-400 scale-110"
-                    : "bg-emerald-800 hover:bg-emerald-600"
-                }
-              `}
-            />
-          ))}
         </div>
       </div>
     </section>
