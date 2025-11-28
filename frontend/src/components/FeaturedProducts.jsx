@@ -8,11 +8,9 @@ import toast from "react-hot-toast";
 const AUTOPLAY_INTERVAL = 4500;
 const SWIPE_THRESHOLD = 55;
 
-// Shadow-glow on centre card
 const centerGlow =
   "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
 
-// Depth blur levels
 const depthBlur = {
   0: "blur-0 opacity-100",
   1: "blur-[1px] opacity-90",
@@ -21,41 +19,40 @@ const depthBlur = {
 };
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
-  // Sort newest first
-  const sorted = useMemo(
-    () =>
-      [...featuredProducts]
-        .filter((p) => p.isFeatured)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
-    [featuredProducts]
-  );
+  /* -----------------------------------------------------
+     SORT NEW → OLD
+  ----------------------------------------------------- */
+  const sorted = useMemo(() => {
+    return [...featuredProducts]
+      .filter((p) => p.isFeatured)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [featuredProducts]);
 
-  // ----- STATE -----
+  const total = sorted.length;
+
+  /* -----------------------------------------------------
+     RESPONSIVE: ITEMS PER PAGE
+  ----------------------------------------------------- */
   const [itemsPerPage, setItemsPerPage] = useState(4);
-  const [index, setIndex] = useState(0);
-  const autoplayRef = useRef(null);
-  const wrapperRef = useRef(null);
-  const dragStartX = useRef(null);
-  const isHovering = useRef(false);
 
-  const { addToCart } = useCartStore();
-  const { user } = useUserStore();
-
-  // ----- RESPONSIVE -----
   useEffect(() => {
-    const handleR = () => {
+    const handleResize = () => {
       if (window.innerWidth < 640) setItemsPerPage(1);
       else if (window.innerWidth < 1024) setItemsPerPage(2);
       else if (window.innerWidth < 1280) setItemsPerPage(3);
       else setItemsPerPage(4);
     };
-    handleR();
-    window.addEventListener("resize", handleR);
-    return () => window.removeEventListener("resize", handleR);
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Total virtual slides (infinite)
-  const total = sorted.length;
+  const trueOffset = itemsPerPage;
+
+  /* -----------------------------------------------------
+     VIRTUAL SLIDES FOR INFINITE LOOPING
+  ----------------------------------------------------- */
   const virtualSlides = useMemo(() => {
     return [
       ...sorted.slice(-itemsPerPage),
@@ -64,9 +61,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     ];
   }, [sorted, itemsPerPage]);
 
-  const trueIndexOffset = itemsPerPage;
+  /* -----------------------------------------------------
+     INDEX + NORMALISATION
+  ----------------------------------------------------- */
+  const [index, setIndex] = useState(0);
 
-  // Safe index snapping
   const normalizeIndex = useCallback(
     (i) => {
       if (i < 0) return total - 1;
@@ -76,10 +75,19 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     [total]
   );
 
-  // ----- AUTOPLAY -----
   const next = useCallback(() => {
-    setIndex((prev) => normalizeIndex(prev + 1));
+    setIndex((i) => normalizeIndex(i + 1));
   }, [normalizeIndex]);
+
+  const prev = useCallback(() => {
+    setIndex((i) => normalizeIndex(i - 1));
+  }, [normalizeIndex]);
+
+  /* -----------------------------------------------------
+     AUTOPLAY
+  ----------------------------------------------------- */
+  const autoplayRef = useRef(next);
+  const isHovering = useRef(false);
 
   useEffect(() => {
     autoplayRef.current = next;
@@ -92,7 +100,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     return () => clearInterval(id);
   }, []);
 
-  // ----- TOUCH SWIPE -----
+  /* -----------------------------------------------------
+     SWIPE
+  ----------------------------------------------------- */
+  const dragStartX = useRef(null);
+
   const onTouchStart = (e) => {
     dragStartX.current = e.touches[0].clientX;
   };
@@ -105,24 +117,23 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     dragStartX.current = null;
   };
 
-  // ----- ARROWS -----
-  const prev = useCallback(() => {
-    setIndex((prev) => normalizeIndex(prev - 1));
-  }, [normalizeIndex]);
-
-  // Page dots
-  const totalPages = Math.ceil(total / itemsPerPage);
-  const activePage = Math.floor(index / itemsPerPage);
-
-  // Detect centre visible slide
-  const getCenterIndex = useCallback(
+  /* -----------------------------------------------------
+     CENTER DEPTH LOGIC
+  ----------------------------------------------------- */
+  const getDepth = useCallback(
     (virtualIdx) => {
-      const realIdx = (virtualIdx - trueIndexOffset + total) % total;
+      const realIdx = (virtualIdx - trueOffset + total) % total;
       const dist = Math.abs(realIdx - index);
       return Math.min(dist, 3);
     },
-    [index, total, trueIndexOffset]
+    [index, total, trueOffset]
   );
+
+  /* -----------------------------------------------------
+     ADD TO CART
+  ----------------------------------------------------- */
+  const { addToCart } = useCartStore();
+  const { user } = useUserStore();
 
   const handleAddToCart = (p) => {
     if (!user)
@@ -133,8 +144,17 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     addToCart(p);
   };
 
+  /* -----------------------------------------------------
+     PAGINATION DOTS
+  ----------------------------------------------------- */
+  const totalPages = Math.ceil(total / itemsPerPage);
+  const activePage = Math.floor(index / itemsPerPage);
+
+  /* -----------------------------------------------------
+     RENDER
+  ----------------------------------------------------- */
   return (
-    <section className="py-12 select-none">
+    <section className="py-16 select-none pt-20">
       <div className="container mx-auto px-4">
         <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
           Featured
@@ -145,16 +165,16 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           onMouseEnter={() => (isHovering.current = true)}
           onMouseLeave={() => (isHovering.current = false)}
         >
+          {/* SLIDER */}
           <div
-            className="overflow-hidden"
-            ref={wrapperRef}
+            className="overflow-visible"
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
             <motion.div
               className="flex"
               animate={{
-                x: `-${((index + trueIndexOffset) * 100) / itemsPerPage}%`,
+                x: `-${((index + trueOffset) * 100) / itemsPerPage}%`,
               }}
               transition={{
                 type: "spring",
@@ -163,12 +183,14 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
               }}
             >
               {virtualSlides.map((product, virtualIdx) => {
-                const depth = getCenterIndex(virtualIdx);
+                const depth = getDepth(virtualIdx);
 
                 return (
                   <motion.div
                     key={`${product.id}-${virtualIdx}`}
-                    className={`w-full sm:w-1/2 lg:w-1/3 xl:w-1/4 flex-shrink-0 px-2 transition-all duration-300
+                    className={`
+                      w-full sm:w-1/2 lg:w-1/3 xl:w-1/4
+                      flex-shrink-0 px-2 transition-all duration-300
                       ${
                         depth === 0
                           ? "scale-100 z-[5]"
@@ -190,12 +212,15 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     }}
                   >
                     <div
-                      className={`bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl shadow-lg border border-emerald-500/30 flex flex-col h-full transition-all duration-300 
+                      className={`
+                        bg-white bg-opacity-10 backdrop-blur-sm
+                        rounded-2xl shadow-lg border border-emerald-500/30
+                        flex flex-col h-full transition-all duration-300
                         ${depthBlur[depth]}
                         ${depth === 0 ? centerGlow : ""}
                       `}
                     >
-                      <div className="overflow-clip">
+                      <div className="overflow-clip rounded-t-2xl">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -208,6 +233,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                         <h3 className="text-lg font-semibold mb-2 text-white text-center">
                           {product.name}
                         </h3>
+
                         <p className="text-sm text-emerald-200 mb-2 line-clamp-2 min-h-[2.6em] text-center">
                           {product.description}
                         </p>
@@ -249,17 +275,20 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           </button>
         </div>
 
-        {/* Page Dots */}
+        {/* DOTS */}
         <div className="flex justify-center mt-6 gap-2">
           {Array.from({ length: totalPages }).map((_, p) => (
             <button
               key={p}
               onClick={() => setIndex(p * itemsPerPage)}
-              className={`w-3 h-3 rounded-full transition ${
-                p === activePage
-                  ? "bg-emerald-400 scale-110"
-                  : "bg-emerald-800 hover:bg-emerald-600"
-              }`}
+              className={`
+                w-3 h-3 rounded-full transition
+                ${
+                  p === activePage
+                    ? "bg-emerald-400 scale-110"
+                    : "bg-emerald-800 hover:bg-emerald-600"
+                }
+              `}
             />
           ))}
         </div>
