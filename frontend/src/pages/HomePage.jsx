@@ -17,10 +17,6 @@ const fadeInUp = {
 const HomePage = () => {
   const { fetchFeaturedProducts, products, loading } = useProductStore();
 
-  const sortedFeatured = [...products]
-    .filter((p) => p.isFeatured)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
   useEffect(() => {
     fetchFeaturedProducts();
   }, [fetchFeaturedProducts]);
@@ -28,6 +24,7 @@ const HomePage = () => {
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800 overflow-hidden">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Header */}
         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
           <img
             src="/logo.png"
@@ -52,6 +49,7 @@ const HomePage = () => {
           and everyday journeys
         </motion.p>
 
+        {/* Categories */}
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 gap-6"
           initial="hidden"
@@ -64,6 +62,7 @@ const HomePage = () => {
           ))}
         </motion.div>
 
+        {/* Featured */}
         <div className="mt-14">
           <AnimatePresence>
             {loading ? (
@@ -81,9 +80,8 @@ const HomePage = () => {
                 animate="visible"
                 variants={fadeInUp}
                 transition={{ delay: 0.5 }}
-                className="text-center"
               >
-                <FeaturedProducts featuredProducts={sortedFeatured} />
+                <FeaturedProducts featuredProducts={products} />
               </motion.div>
             ) : null}
           </AnimatePresence>
