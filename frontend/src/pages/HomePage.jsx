@@ -16,9 +16,10 @@ const fadeInUp = {
 
 const HomePage = () => {
   const { fetchFeaturedProducts, products, loading } = useProductStore();
-  const sortedFeatured = [...products].sort(
-    (a, b) => (b.featuredAt ?? 0) - (a.featuredAt ?? 0)
-  );
+
+  const sortedFeatured = [...products]
+    .filter((p) => p.isFeatured)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   useEffect(() => {
     fetchFeaturedProducts();
