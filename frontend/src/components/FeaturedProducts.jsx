@@ -69,9 +69,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const [isAnimating, setIsAnimating] = useState(true);
 
   useEffect(() => {
-    // Wait for breakpoints + data
     if (virtualIndex === null && itemsPerPage > 0 && total > 0) {
-      setVirtualIndex(itemsPerPage); // first REAL item
+      setVirtualIndex(itemsPerPage);
       setIndex(0);
     }
   }, [itemsPerPage, total, virtualIndex]);
