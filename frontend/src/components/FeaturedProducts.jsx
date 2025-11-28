@@ -51,7 +51,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const trueOffset = itemsPerPage;
 
   /* -----------------------------------------------------
-     CLONED SLIDES FOR TRUE LOOP
+     CREATE VIRTUAL SLIDES (∞ LOOP)
   ----------------------------------------------------- */
   const virtualSlides = useMemo(() => {
     return [
@@ -62,7 +62,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   }, [sorted, itemsPerPage]);
 
   /* -----------------------------------------------------
-     INDEX + LOOP
+     TRUE INFINITE LOOP LOGIC
   ----------------------------------------------------- */
   const [index, setIndex] = useState(0);
   const [virtualIndex, setVirtualIndex] = useState(trueOffset);
@@ -89,7 +89,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     setIndex((i) => normalizeIndex(i - 1));
   }, [normalizeIndex]);
 
-  /* Silent warp back */
+  /* Silent warp back to real position */
   useEffect(() => {
     if (virtualIndex <= 0) {
       setTimeout(() => {
@@ -122,7 +122,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   }, []);
 
   /* -----------------------------------------------------
-     SWIPE
+     SWIPE + MOMENTUM
   ----------------------------------------------------- */
   const dragStartX = useRef(null);
   const deltaX = useRef(0);
@@ -139,25 +139,24 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const onTouchEnd = () => {
     if (Math.abs(deltaX.current) > SWIPE_THRESHOLD) {
       deltaX.current > 0 ? prev() : next();
-    } else if (Math.abs(deltaX.current) > 30) {
-      deltaX.current > 0 ? prev() : next();
+    } else {
+      // momentum flick
+      if (Math.abs(deltaX.current) > 30) {
+        deltaX.current > 0 ? prev() : next();
+      }
     }
+
     dragStartX.current = null;
   };
 
   /* -----------------------------------------------------
-     FIX 1 — CONSISTENT DEPTH LOGIC
+     DEPTH + SCALE
   ----------------------------------------------------- */
   const getDepth = useCallback(
     (virtualIdx) => {
       const realIdx = (virtualIdx - trueOffset + total) % total;
-
-      const forward = Math.abs(realIdx - index);
-      const backward = total - forward;
-
-      const dist = Math.min(forward, backward);
-
-      return Math.min(dist, 3); // 0,1,2,3
+      const dist = Math.abs(realIdx - index);
+      return Math.min(dist, 3);
     },
     [index, total, trueOffset]
   );
@@ -170,25 +169,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const handleAddToCart = (p) => {
     if (!user)
-      return toast.error("Please log in to add products", { id: "login" });
+      return toast.error("Please log in to add products", {
+        id: "login",
+      });
+
     addToCart(p);
-  };
-
-  /* -----------------------------------------------------
-     FIX 2 — CLICK → SCROLL INTO FOCUS
-  ----------------------------------------------------- */
-  const scrollToItem = (virtualIdx) => {
-    const realIdx = (virtualIdx - trueOffset + total) % total;
-
-    const diff = realIdx - index;
-    const shortest =
-      Math.abs(diff) <= total / 2 ? diff : diff - Math.sign(diff) * total;
-
-    if (shortest === 0) return;
-
-    setIsAnimating(true);
-    setVirtualIndex((v) => v + shortest);
-    setIndex(normalizeIndex(index + shortest));
   };
 
   /* -----------------------------------------------------
@@ -215,13 +200,17 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             >
               <motion.div
                 className="flex will-change-transform"
-                animate={{ x: `-${(virtualIndex * 100) / itemsPerPage}%` }}
+                animate={{
+                  x: `-${(virtualIndex * 100) / itemsPerPage}%`,
+                }}
                 transition={
                   isAnimating
                     ? { type: "spring", stiffness: 160, damping: 22 }
                     : { duration: 0 }
                 }
-                style={{ transform: "translateZ(0)" }}
+                style={{
+                  transform: "translateZ(0)",
+                }}
               >
                 {virtualSlides.map((product, virtualIdx) => {
                   const depth = getDepth(virtualIdx);
@@ -229,20 +218,19 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                   return (
                     <motion.div
                       key={`${product.id}-${virtualIdx}`}
-                      onClick={() => scrollToItem(virtualIdx)}
                       className={`
-                        w-full sm:w-1/2 lg:w-1/3 xl:w-1/4
-                        flex-shrink-0 px-2 transition-all duration-300 cursor-pointer
-                        ${
-                          depth === 0
-                            ? "scale-100 z-[5]"
-                            : depth === 1
-                            ? "scale-[0.94]"
-                            : depth === 2
-                            ? "scale-[0.88]"
-                            : "scale-[0.82]"
-                        }
-                      `}
+                      w-full sm:w-1/2 lg:w-1/3 xl:w-1/4
+                      flex-shrink-0 px-2 transition-all duration-300
+                      ${
+                        depth === 0
+                          ? "scale-100 z-[5]"
+                          : depth === 1
+                          ? "scale-[0.94]"
+                          : depth === 2
+                          ? "scale-[0.88]"
+                          : "scale-[0.82]"
+                      }
+                    `}
                       style={{
                         transformStyle: "preserve-3d",
                         perspective: 1000,
@@ -255,12 +243,12 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     >
                       <div
                         className={`
-                          bg-white bg-opacity-10 backdrop-blur-sm
-                          rounded-2xl shadow-lg border border-emerald-500/30
-                          flex flex-col h-full transition-all duration-300
-                          ${depthBlur[depth]}
-                          ${depth === 0 ? centerGlow : ""}
-                        `}
+                        bg-white bg-opacity-10 backdrop-blur-sm
+                        rounded-2xl shadow-lg border border-emerald-500/30
+                        flex flex-col h-full transition-all duration-300
+                        ${depthBlur[depth]}
+                        ${depth === 0 ? centerGlow : ""}
+                      `}
                       >
                         <div className="overflow-clip rounded-t-2xl">
                           <img
@@ -286,10 +274,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                             </span>
 
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddToCart(product);
-                              }}
+                              onClick={() => handleAddToCart(product)}
                               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-6 py-2 rounded-full font-semibold shadow-md"
                             >
                               <FaCartShopping className="w-5 h-5" />
@@ -303,22 +288,22 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                 })}
               </motion.div>
             </div>
+
           </div>
+            {/* ARROWS */}
+            <button
+              onClick={prev}
+              className="absolute top-1/2 -left-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
+            >
+              <FaChevronLeft className="w-6 h-6 text-white" />
+            </button>
 
-          {/* ARROWS */}
-          <button
-            onClick={prev}
-            className="absolute top-1/2 -left-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronLeft className="w-6 h-6 text-white" />
-          </button>
-
-          <button
-            onClick={next}
-            className="absolute top-1/2 -right-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronRight className="w-6 h-6 text-white" />
-          </button>
+            <button
+              onClick={next}
+              className="absolute top-1/2 -right-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
+            >
+              <FaChevronRight className="w-6 h-6 text-white" />
+            </button>
         </div>
       </div>
     </section>
