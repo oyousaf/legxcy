@@ -5,7 +5,7 @@ import { FaStar } from "react-icons/fa6";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
-import { useUIStore } from "../stores/useUIStore"; // ← GLOBAL UI STORE
+import { useUIStore } from "../stores/useUIStore";
 import toast from "react-hot-toast";
 
 const FILTERS = [
