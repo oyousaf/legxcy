@@ -191,33 +191,34 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           onMouseEnter={() => (isHovering.current = true)}
           onMouseLeave={() => (isHovering.current = false)}
         >
-          <div
-            className="overflow-visible touch-pan-y"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            <motion.div
-              className="flex will-change-transform"
-              animate={{
-                x: `-${(virtualIndex * 100) / itemsPerPage}%`,
-              }}
-              transition={
-                isAnimating
-                  ? { type: "spring", stiffness: 160, damping: 22 }
-                  : { duration: 0 }
-              }
-              style={{
-                transform: "translateZ(0)",
-              }}
+          <div className="relative w-full overflow-hidden">
+            <div
+              className="overflow-visible touch-pan-y"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
-              {virtualSlides.map((product, virtualIdx) => {
-                const depth = getDepth(virtualIdx);
+              <motion.div
+                className="flex will-change-transform"
+                animate={{
+                  x: `-${(virtualIndex * 100) / itemsPerPage}%`,
+                }}
+                transition={
+                  isAnimating
+                    ? { type: "spring", stiffness: 160, damping: 22 }
+                    : { duration: 0 }
+                }
+                style={{
+                  transform: "translateZ(0)",
+                }}
+              >
+                {virtualSlides.map((product, virtualIdx) => {
+                  const depth = getDepth(virtualIdx);
 
-                return (
-                  <motion.div
-                    key={`${product.id}-${virtualIdx}`}
-                    className={`
+                  return (
+                    <motion.div
+                      key={`${product.id}-${virtualIdx}`}
+                      className={`
                       w-full sm:w-1/2 lg:w-1/3 xl:w-1/4
                       flex-shrink-0 px-2 transition-all duration-300
                       ${
@@ -230,78 +231,79 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                           : "scale-[0.82]"
                       }
                     `}
-                    style={{
-                      transformStyle: "preserve-3d",
-                      perspective: 1000,
-                    }}
-                    whileHover={{
-                      rotateY: depth === 0 ? 6 : 0,
-                      rotateX: depth === 0 ? -3 : 0,
-                      transition: { type: "spring", stiffness: 160 },
-                    }}
-                  >
-                    <div
-                      className={`
+                      style={{
+                        transformStyle: "preserve-3d",
+                        perspective: 1000,
+                      }}
+                      whileHover={{
+                        rotateY: depth === 0 ? 6 : 0,
+                        rotateX: depth === 0 ? -3 : 0,
+                        transition: { type: "spring", stiffness: 160 },
+                      }}
+                    >
+                      <div
+                        className={`
                         bg-white bg-opacity-10 backdrop-blur-sm
                         rounded-2xl shadow-lg border border-emerald-500/30
                         flex flex-col h-full transition-all duration-300
                         ${depthBlur[depth]}
                         ${depth === 0 ? centerGlow : ""}
                       `}
-                    >
-                      <div className="overflow-clip rounded-t-2xl">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          loading="lazy"
-                          className="w-full h-48 object-cover transition-transform duration-300 hover:scale-110"
-                        />
-                      </div>
+                      >
+                        <div className="overflow-clip rounded-t-2xl">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            loading="lazy"
+                            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-110"
+                          />
+                        </div>
 
-                      <div className="p-4 flex flex-col h-full">
-                        <h3 className="text-lg font-semibold mb-2 text-white text-center">
-                          {product.name}
-                        </h3>
+                        <div className="p-4 flex flex-col h-full">
+                          <h3 className="text-lg font-semibold mb-2 text-white text-center">
+                            {product.name}
+                          </h3>
 
-                        <p className="text-sm text-emerald-200 mb-2 line-clamp-2 min-h-[2.6em] text-center">
-                          {product.description}
-                        </p>
+                          <p className="text-sm text-emerald-200 mb-2 line-clamp-2 min-h-[2.6em] text-center">
+                            {product.description}
+                          </p>
 
-                        <div className="mt-auto flex flex-col items-center gap-3">
-                          <span className="text-2xl font-extrabold text-gray-200">
-                            £{product.price.toFixed()}
-                          </span>
+                          <div className="mt-auto flex flex-col items-center gap-3">
+                            <span className="text-2xl font-extrabold text-gray-200">
+                              £{product.price.toFixed()}
+                            </span>
 
-                          <button
-                            onClick={() => handleAddToCart(product)}
-                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-6 py-2 rounded-full font-semibold shadow-md"
-                          >
-                            <FaCartShopping className="w-5 h-5" />
-                            Add to Cart
-                          </button>
+                            <button
+                              onClick={() => handleAddToCart(product)}
+                              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-6 py-2 rounded-full font-semibold shadow-md"
+                            >
+                              <FaCartShopping className="w-5 h-5" />
+                              Add to Cart
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </div>
+
           </div>
+            {/* ARROWS */}
+            <button
+              onClick={prev}
+              className="absolute top-1/2 -left-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
+            >
+              <FaChevronLeft className="w-6 h-6 text-white" />
+            </button>
 
-          {/* ARROWS */}
-          <button
-            onClick={prev}
-            className="absolute top-1/2 -left-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronLeft className="w-6 h-6 text-white" />
-          </button>
-
-          <button
-            onClick={next}
-            className="absolute top-1/2 -right-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronRight className="w-6 h-6 text-white" />
-          </button>
+            <button
+              onClick={next}
+              className="absolute top-1/2 -right-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
+            >
+              <FaChevronRight className="w-6 h-6 text-white" />
+            </button>
         </div>
       </div>
     </section>
