@@ -16,6 +16,9 @@ const fadeInUp = {
 
 const HomePage = () => {
   const { fetchFeaturedProducts, products, loading } = useProductStore();
+  const sortedFeatured = [...products].sort(
+    (a, b) => (b.featuredAt ?? 0) - (a.featuredAt ?? 0)
+  );
 
   useEffect(() => {
     fetchFeaturedProducts();
@@ -79,7 +82,7 @@ const HomePage = () => {
                 transition={{ delay: 0.5 }}
                 className="text-center"
               >
-                <FeaturedProducts featuredProducts={products} />
+                <FeaturedProducts featuredProducts={sortedFeatured} />
               </motion.div>
             ) : null}
           </AnimatePresence>

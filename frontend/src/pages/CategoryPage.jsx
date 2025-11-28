@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../components/ProductCard";
 import { LuMoveRight } from "react-icons/lu";
 import { FaChevronDown } from "react-icons/fa";
+import { useUIStore } from "../stores/useUIStore";
 
 const skeletons = Array(8).fill(0);
 
@@ -28,29 +29,23 @@ const sortOptions = [
 ];
 
 const getSortedProducts = (products, sort) => {
-  let arr = [...products];
+  const arr = [...products];
+
   switch (sort) {
     case "az":
-      arr.sort((a, b) => a.name.localeCompare(b.name));
-      break;
+      return arr.sort((a, b) => a.name.localeCompare(b.name));
     case "za":
-      arr.sort((a, b) => b.name.localeCompare(a.name));
-      break;
+      return arr.sort((a, b) => b.name.localeCompare(a.name));
     case "price-asc":
-      arr.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-      break;
+      return arr.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     case "price-desc":
-      arr.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-      break;
+      return arr.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     case "oldest":
-      arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      break;
+      return arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     case "newest":
     default:
-      arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      break;
+      return arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  return arr;
 };
 
 const CategoryPage = () => {
@@ -58,7 +53,9 @@ const CategoryPage = () => {
   const { category } = useParams();
   const navigate = useNavigate();
 
-  const [sort, setSort] = useState("newest");
+  // GLOBAL SORT STATE
+  const { sort, setSort } = useUIStore();
+
   const [sortOpen, setSortOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const dropdownRef = useRef(null);
@@ -74,27 +71,31 @@ const CategoryPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Keyboard support for dropdown
+  // Keyboard support
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!sortOpen) return;
+
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setHighlightedIndex((prev) =>
           prev < sortOptions.length - 1 ? prev + 1 : 0
         );
       }
+
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setHighlightedIndex((prev) =>
           prev > 0 ? prev - 1 : sortOptions.length - 1
         );
       }
+
       if (e.key === "Enter") {
         e.preventDefault();
         setSort(sortOptions[highlightedIndex].value);
         setSortOpen(false);
       }
+
       if (e.key === "Escape") {
         setSortOpen(false);
       }
@@ -102,30 +103,26 @@ const CategoryPage = () => {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [sortOpen, highlightedIndex]);
+  }, [sortOpen, highlightedIndex, setSort]);
 
-  // Reset and fetch products on category change
+  // Reset + fetch products when category changes
   useEffect(() => {
     useProductStore.setState({ products: [] });
-  }, [category]);
-
-  useEffect(() => {
     fetchProductsByCategory(category);
-  }, [fetchProductsByCategory, category]);
+  }, [category, fetchProductsByCategory]);
 
   const heading =
     categoryHeadings[category] ||
-    (category
-      ? category.charAt(0).toUpperCase() + category.slice(1)
-      : "Category");
+    (category ? category.charAt(0).toUpperCase() + category.slice(1) : "Category");
 
   const otherCategory =
     category === "hub" ? "mid" : category === "mid" ? "hub" : null;
+
   const otherLabel =
-    otherCategory === "mid"
-      ? "Mid-Drive"
-      : otherCategory === "hub"
+    otherCategory === "hub"
       ? "Hub-Drive"
+      : otherCategory === "mid"
+      ? "Mid-Drive"
       : null;
 
   const sortedProducts = getSortedProducts(products, sort);
@@ -133,6 +130,7 @@ const CategoryPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
       <div className="relative max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+
         {/* Heading */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -152,17 +150,18 @@ const CategoryPage = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Animated controls */}
+        {/* Controls */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={category}
+            key={category + '-controls'}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 w-full relative z-10"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.38, ease: "easeInOut" }}
           >
-            {/* Sort dropdown */}
+
+            {/* Sort Dropdown */}
             <div className="flex items-center gap-2">
               <label className="text-emerald-300 font-medium">Sort by</label>
               <div ref={dropdownRef} className="relative inline-block w-44">
@@ -236,7 +235,7 @@ const CategoryPage = () => {
           </motion.div>
         </AnimatePresence>
 
-        {/* Products grid */}
+        {/* Product Grid */}
         <AnimatePresence mode="wait">
           <motion.div
             key={sort}
@@ -257,7 +256,7 @@ const CategoryPage = () => {
                   transition={{ duration: 0.45, ease: "easeInOut" }}
                 />
               ))
-            ) : sortedProducts?.length === 0 ? (
+            ) : sortedProducts.length === 0 ? (
               <motion.h2
                 className="text-3xl font-semibold text-gray-300 text-center col-span-full"
                 initial={{ opacity: 0, y: 10 }}
@@ -266,7 +265,7 @@ const CategoryPage = () => {
                 No products found
               </motion.h2>
             ) : (
-              sortedProducts?.map((product, idx) => (
+              sortedProducts.map((product, idx) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -285,6 +284,7 @@ const CategoryPage = () => {
             )}
           </motion.div>
         </AnimatePresence>
+
       </div>
     </div>
   );

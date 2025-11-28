@@ -163,7 +163,10 @@ const AdminPage = () => {
               >
                 <TabErrorBoundary>
                   {activeTab === "add" && <AddProductForm />}
-                  {activeTab === "products" && <ProductsList />}
+                  {activeTab === "products" && (
+                    <ProductsList />
+                  )}
+
                   {activeTab === "analytics" && <AnalyticsTab />}
                 </TabErrorBoundary>
               </motion.div>

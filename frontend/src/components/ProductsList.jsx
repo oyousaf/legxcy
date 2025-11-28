@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GoTrash } from "react-icons/go";
 import { FaStar } from "react-icons/fa6";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
+import { useUIStore } from "../stores/useUIStore"; // ← GLOBAL UI STORE
 import toast from "react-hot-toast";
 
 const FILTERS = [
@@ -13,6 +14,7 @@ const FILTERS = [
   { label: "Mid", value: "mid" },
   { label: "Featured", value: "featured" },
 ];
+
 const SORTS = [
   { label: "Newest", value: "newest" },
   { label: "Oldest", value: "oldest" },
@@ -75,38 +77,47 @@ const ProductsList = () => {
     setProducts,
     fetchAllProducts,
   } = useProductStore();
-  const { profile } = useUserStore();
 
-  const [filter, setFilter] = useState("");
-  const [sort, setSort] = useState("newest");
-  const [search, setSearch] = useState("");
+  const { profile } = useUserStore();
+  const isAdmin = profile?.role === "admin";
+
+  // GLOBAL PERSISTENT UI STATE
+  const { filter, sort, search, setFilter, setSort, setSearch } = useUIStore();
+
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [optimisticLoading, setOptimisticLoading] = useState({});
+  const [togglingStar, setTogglingStar] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const [editValues, setEditValues] = useState({
     name: "",
     category: "",
     price: "",
     description: "",
   });
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [optimisticLoading, setOptimisticLoading] = useState({});
-  const [togglingStar, setTogglingStar] = useState({});
 
-  const isAdmin = profile?.role === "admin";
   const safeProducts = Array.isArray(products) ? products : [];
 
-  // UseMemo to avoid recalculating on every render
+  // GLOBAL SORT + FILTER + SEARCH APPLIED HERE
   const filteredSortedProducts = useMemo(() => {
-    let filtered = safeProducts;
-    if (filter === "featured") filtered = filtered.filter((p) => p.isFeatured);
-    else if (filter) filtered = filtered.filter((p) => p.category === filter);
+    let arr = safeProducts;
 
-    if (search.trim())
-      filtered = filtered.filter((p) =>
+    if (filter === "featured") {
+      arr = arr
+        .filter((p) => p.isFeatured)
+        .sort((a, b) => (b.featuredAt ?? 0) - (a.featuredAt ?? 0));
+    } else if (filter) {
+      arr = arr.filter((p) => p.category === filter);
+    }
+
+    if (search.trim()) {
+      arr = arr.filter((p) =>
         p.name.toLowerCase().includes(search.trim().toLowerCase())
       );
+    }
 
-    return [...filtered].sort((a, b) => {
+    return [...arr].sort((a, b) => {
       switch (sort) {
         case "az":
           return a.name.localeCompare(b.name);
@@ -124,7 +135,7 @@ const ProductsList = () => {
           return 0;
       }
     });
-  }, [safeProducts, filter, search, sort]);
+  }, [safeProducts, filter, sort, search]);
 
   const startEdit = (product) => {
     setEditing(getId(product));
@@ -138,9 +149,13 @@ const ProductsList = () => {
 
   const handleSaveEdit = async (product) => {
     setSavingEdit(true);
-    setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: true }));
-    const prevProducts = [...safeProducts];
-    const idx = safeProducts.findIndex((p) => getId(p) === getId(product));
+    const id = getId(product);
+
+    setOptimisticLoading((prev) => ({ ...prev, [id]: true }));
+    const prevState = [...safeProducts];
+
+    const idx = prevState.findIndex((p) => getId(p) === id);
+
     const updated = {
       ...product,
       name: editValues.name,
@@ -148,76 +163,83 @@ const ProductsList = () => {
       price: Number(editValues.price),
       description: editValues.description,
     };
-    const optimistic = [...safeProducts];
+
+    const optimistic = [...prevState];
     optimistic[idx] = updated;
     setProducts(optimistic);
 
     try {
-      await updateProduct(getId(product), {
-        name: editValues.name,
-        category: editValues.category,
-        price: Number(editValues.price),
-        description: editValues.description,
-      });
+      await updateProduct(id, updated);
       setEditing(null);
-      setTimeout(fetchAllProducts, 1300);
+      setTimeout(fetchAllProducts, 1400);
       toast.success("Product updated!");
-    } catch (err) {
+    } catch {
+      setProducts(prevState);
       toast.error("Could not update product.");
-      setProducts(prevProducts);
     } finally {
       setSavingEdit(false);
-      setOptimisticLoading((prev) => ({ ...prev, [getId(product)]: false }));
+      setOptimisticLoading((prev) => ({ ...prev, [id]: false }));
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditing(null);
-    setEditValues({ name: "", category: "", price: "", description: "" });
-  };
-
-  const handleDelete = (id, name) => setConfirmDelete({ id, name });
-
-  const handleConfirmDelete = async () => {
-    if (!confirmDelete) return;
-    setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: true }));
-    const prevProducts = [...safeProducts];
-    setProducts(safeProducts.filter((p) => getId(p) !== confirmDelete.id));
-    try {
-      await deleteProduct(confirmDelete.id);
-      setTimeout(fetchAllProducts, 1300);
-    } catch {
-      toast.error("Could not delete product.");
-      setProducts(prevProducts);
-    }
-    setOptimisticLoading((prev) => ({ ...prev, [confirmDelete.id]: false }));
-    setConfirmDelete(null);
   };
 
   const handleToggleFeatured = async (product) => {
     if (!isAdmin) return toast.error("Admin access required.");
-    const prodId = getId(product);
-    const newValue = !product.isFeatured;
-    setTogglingStar((prev) => ({ ...prev, [prodId]: true }));
 
+    const id = getId(product);
+    const newVal = !product.isFeatured;
+
+    setTogglingStar((prev) => ({ ...prev, [id]: true }));
+
+    // optimistic + featuredAt timestamp
     setProducts((prev) =>
       prev.map((p) =>
-        getId(p) === prodId ? { ...p, isFeatured: newValue } : p
+        getId(p) === id
+          ? {
+              ...p,
+              isFeatured: newVal,
+              featuredAt: newVal ? Date.now() : p.featuredAt,
+            }
+          : p
       )
     );
+
     try {
-      const ok = await toggleFeaturedProduct(prodId, newValue);
+      const ok = await toggleFeaturedProduct(id, newVal);
       if (!ok) throw new Error();
       await fetchAllProducts();
     } catch {
+      // roll back
       setProducts((prev) =>
         prev.map((p) =>
-          getId(p) === prodId ? { ...p, isFeatured: product.isFeatured } : p
+          getId(p) === id
+            ? { ...p, isFeatured: product.isFeatured }
+            : p
         )
       );
     } finally {
-      setTogglingStar((prev) => ({ ...prev, [prodId]: false }));
+      setTogglingStar((prev) => ({ ...prev, [id]: false }));
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    const id = confirmDelete.id;
+
+    setOptimisticLoading((prev) => ({ ...prev, [id]: true }));
+    const prev = [...safeProducts];
+
+    setProducts(prev.filter((p) => getId(p) !== id));
+
+    try {
+      await deleteProduct(id);
+      setTimeout(fetchAllProducts, 1400);
+    } catch {
+      setProducts(prev);
+      toast.error("Could not delete product.");
+    }
+
+    setOptimisticLoading((prev) => ({ ...prev, [id]: false }));
+    setConfirmDelete(null);
   };
 
   return (
@@ -228,6 +250,7 @@ const ProductsList = () => {
       transition={{ duration: 0.8 }}
       tabIndex={0}
     >
+      {/* FILTERS / SORT / SEARCH */}
       <div className="flex flex-wrap gap-2 mb-6 justify-center items-center">
         {FILTERS.map(({ label, value }) => (
           <button
@@ -238,39 +261,39 @@ const ProductsList = () => {
                 ? "bg-emerald-600 border-emerald-400 text-white"
                 : "bg-emerald-900 border-emerald-700 text-emerald-300 hover:bg-emerald-700"
             }`}
-            aria-pressed={filter === value}
           >
             {label}
           </button>
         ))}
+
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer"
-          aria-label="Sort products"
+          className="ml-2 px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-300 text-sm"
         >
           {SORTS.map(({ label, value }) => (
             <option
               value={value}
               key={value}
-              className="bg-emerald-900 text-emerald-300 cursor-pointer"
+              className="bg-emerald-900 text-emerald-300"
             >
               {label}
             </option>
           ))}
         </select>
       </div>
+
       <div className="flex justify-center mb-6">
         <input
           type="text"
           placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
-          aria-label="Search products"
-          autoComplete="off"
+          className="w-full max-w-md px-4 py-2 rounded-full border-2 bg-emerald-900 border-emerald-700 text-emerald-200 text-sm"
         />
       </div>
+
+      {/* PRODUCT GRID */}
       <div className="grid gap-6 grid-cols-1">
         <AnimatePresence>
           {filteredSortedProducts.length === 0 ? (
@@ -286,10 +309,11 @@ const ProductsList = () => {
           ) : (
             filteredSortedProducts.map((product, i) => {
               const id = getId(product);
-              const isEditing = editing === id;
               const loading = optimisticLoading[id];
-              const isModalOpen = confirmDelete?.id === id;
+              const isEditing = editing === id;
               const starToggling = togglingStar[id];
+              const isModalOpen = confirmDelete?.id === id;
+
               return (
                 <motion.div
                   key={id}
@@ -311,6 +335,7 @@ const ProductsList = () => {
                   }
                   whileTap={!isEditing ? { scale: 0.98 } : undefined}
                 >
+                  {/* TOP BUTTONS */}
                   <div
                     className="absolute flex justify-between items-center left-0 right-0 top-0 px-3 pt-3 z-10 pointer-events-none"
                     style={{ minHeight: "48px" }}
@@ -318,19 +343,12 @@ const ProductsList = () => {
                     <div className="pointer-events-auto">
                       <button
                         onClick={() => handleToggleFeatured(product)}
-                        className={`p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors duration-200
-                          ${
-                            product.isFeatured
-                              ? "bg-yellow-400 text-emerald-900"
-                              : "bg-emerald-700 text-emerald-300"
-                          } hover:bg-yellow-500`}
+                        className={`p-2 rounded-full transition-colors duration-200 ${
+                          product.isFeatured
+                            ? "bg-yellow-400 text-emerald-900"
+                            : "bg-emerald-700 text-emerald-300"
+                        } hover:bg-yellow-500`}
                         disabled={!isAdmin || loading || starToggling}
-                        title={
-                          isAdmin
-                            ? "Toggle featured"
-                            : "Only admins can change featured status"
-                        }
-                        aria-label="Toggle featured"
                       >
                         {starToggling ? (
                           <span className="w-5 h-5 block animate-spin rounded-full border-t-2 border-b-2 border-emerald-800" />
@@ -339,24 +357,27 @@ const ProductsList = () => {
                         )}
                       </button>
                     </div>
+
                     <div className="pointer-events-auto flex gap-1">
                       {isEditing ? (
                         <>
                           <button
                             onClick={() => handleSaveEdit(product)}
-                            className="p-2 text-emerald-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded-full transition"
-                            disabled={!isAdmin || savingEdit}
-                            title="Save changes"
-                            aria-label="Save"
+                            className="p-2 text-emerald-400 hover:text-white"
                           >
                             <FiSave className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={handleCancelEdit}
-                            className="p-2 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-400 rounded-full transition"
-                            disabled={savingEdit}
-                            title="Cancel"
-                            aria-label="Cancel"
+                            onClick={() => {
+                              setEditing(null);
+                              setEditValues({
+                                name: "",
+                                category: "",
+                                price: "",
+                                description: "",
+                              });
+                            }}
+                            className="p-2 text-gray-400 hover:text-white"
                           >
                             <FiX className="h-5 w-5" />
                           </button>
@@ -369,29 +390,23 @@ const ProductsList = () => {
                                 return toast.error("Admin access required.");
                               startEdit(product);
                             }}
-                            className="p-2 text-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full transition"
-                            disabled={!isAdmin || loading}
-                            title={
-                              isAdmin ? "Edit product" : "Only admins can edit"
-                            }
-                            aria-label="Edit"
+                            className="p-2 text-blue-400 hover:text-white"
+                            disabled={!isAdmin}
                           >
                             <FiEdit2 className="h-5 w-5" />
                           </button>
+
                           <button
                             onClick={() => {
                               if (!isAdmin)
                                 return toast.error("Admin access required.");
-                              handleDelete(id, product.name);
+                              setConfirmDelete({
+                                id,
+                                name: product.name,
+                              });
                             }}
-                            className="p-2 text-red-400 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400 rounded-full transition"
-                            disabled={!isAdmin || loading}
-                            title={
-                              isAdmin
-                                ? "Delete product"
-                                : "Only admins can delete"
-                            }
-                            aria-label="Delete product"
+                            className="p-2 text-red-400 hover:text-red-300"
+                            disabled={!isAdmin}
                           >
                             <GoTrash className="h-5 w-5" />
                           </button>
@@ -399,6 +414,8 @@ const ProductsList = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* MAIN CONTENT */}
                   <div className="flex flex-col sm:flex-row items-center gap-4 pt-14 px-4 pb-6">
                     <img
                       src={product.image}
@@ -406,6 +423,7 @@ const ProductsList = () => {
                       className="w-24 h-24 rounded-xl object-cover border-2 border-emerald-800 shadow-md bg-gray-900"
                       loading="lazy"
                     />
+
                     <div className="flex-1 w-full mt-2 sm:mt-0">
                       {isEditing ? (
                         <form
@@ -415,16 +433,9 @@ const ProductsList = () => {
                             handleSaveEdit(product);
                           }}
                         >
-                          <label
-                            htmlFor={`edit-name-${id}`}
-                            className="sr-only"
-                          >
-                            Name
-                          </label>
                           <input
-                            id={`edit-name-${id}`}
                             name="name"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
                             value={editValues.name}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -432,21 +443,10 @@ const ProductsList = () => {
                                 name: e.target.value,
                               }))
                             }
-                            disabled={savingEdit}
-                            required
-                            placeholder="Name"
-                            autoComplete="name"
                           />
-                          <label
-                            htmlFor={`edit-category-${id}`}
-                            className="sr-only"
-                          >
-                            Category
-                          </label>
+
                           <select
-                            id={`edit-category-${id}`}
-                            name="category"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
                             value={editValues.category}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -454,27 +454,15 @@ const ProductsList = () => {
                                 category: e.target.value,
                               }))
                             }
-                            disabled={savingEdit}
-                            required
-                            autoComplete="off"
                           >
                             <option value="">Select category</option>
                             <option value="hub">Hub-Drive</option>
                             <option value="mid">Mid-Drive</option>
                           </select>
-                          <label
-                            htmlFor={`edit-price-${id}`}
-                            className="sr-only"
-                          >
-                            Price
-                          </label>
+
                           <input
-                            id={`edit-price-${id}`}
-                            name="price"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1"
                             type="number"
-                            step="1"
-                            min="0"
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
                             value={editValues.price}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -482,21 +470,10 @@ const ProductsList = () => {
                                 price: e.target.value,
                               }))
                             }
-                            disabled={savingEdit}
-                            required
-                            placeholder="Price"
-                            autoComplete="off"
                           />
-                          <label
-                            htmlFor={`edit-description-${id}`}
-                            className="sr-only"
-                          >
-                            Description
-                          </label>
+
                           <textarea
-                            id={`edit-description-${id}`}
-                            name="description"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 mb-1 min-h-[60px]"
+                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 min-h-[60px]"
                             value={editValues.description}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -504,9 +481,6 @@ const ProductsList = () => {
                                 description: e.target.value,
                               }))
                             }
-                            disabled={savingEdit}
-                            placeholder="Description"
-                            autoComplete="off"
                           />
                         </form>
                       ) : (
@@ -514,24 +488,29 @@ const ProductsList = () => {
                           <div className="text-xl font-semibold text-white mb-1">
                             {product.name}
                           </div>
+
                           <div className="text-emerald-300 text-base mb-2 capitalize">
                             {product.category}
                           </div>
+
                           <div className="text-emerald-200 font-bold text-lg mb-1">
                             £{Number(product.price).toFixed()}
                           </div>
-                          <div className="text-white max-w-full break-words whitespace-pre-line text-sm">
+
+                          <div className="text-white text-sm whitespace-pre-line">
                             {product.description}
                           </div>
                         </>
                       )}
                     </div>
                   </div>
+
                   {loading && (
                     <div className="absolute inset-0 bg-emerald-950/80 flex items-center justify-center z-20">
                       <div className="loader animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
                     </div>
                   )}
+
                   <AnimatePresence>
                     {isModalOpen && (
                       <ConfirmModal
