@@ -21,7 +21,7 @@ const centerGlow =
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* -----------------------------------------------------
-     DATA
+     DATA (NEW → OLD)
   ----------------------------------------------------- */
   const base = useMemo(() => {
     return [...featuredProducts]
@@ -43,8 +43,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const scrollerRef = useRef(null);
   const autoplayRef = useRef(null);
   const settleTimeout = useRef(null);
+
   const isJumping = useRef(false);
   const isInteracting = useRef(false);
+  const autoplayDisabled = useRef(false);
 
   const lastX = useRef(0);
   const lastT = useRef(0);
@@ -52,6 +54,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState(0);
+  const [hovered, setHovered] = useState(false);
 
   /* -----------------------------------------------------
      INITIAL CENTER
@@ -59,6 +62,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
+
     requestAnimationFrame(() => {
       el.scrollLeft = middleOffset;
       lastX.current = el.scrollLeft;
@@ -74,6 +78,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     if (!el) return;
 
     const onScroll = () => {
+      autoplayDisabled.current = true;
+
       const now = performance.now();
       const dx = el.scrollLeft - lastX.current;
       const dt = now - lastT.current || 1;
@@ -86,7 +92,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
       const x = el.scrollLeft;
 
-      // teleport left
       if (x < UNIT) {
         isJumping.current = true;
         el.scrollLeft = x + middleOffset;
@@ -94,7 +99,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
         return;
       }
 
-      // teleport right
       if (x > middleOffset * 2) {
         isJumping.current = true;
         el.scrollLeft = x - middleOffset;
@@ -108,7 +112,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
       setActive(logicalIndex);
 
-      /* Magnetic settle (velocity-aware) */
       if (
         prefersReducedMotion ||
         isInteracting.current ||
@@ -132,13 +135,13 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   }, [baseCount, middleOffset, prefersReducedMotion]);
 
   /* -----------------------------------------------------
-     AUTOPLAY
+     AUTOPLAY (DISABLED AFTER INTERACTION)
   ----------------------------------------------------- */
   useEffect(() => {
     if (prefersReducedMotion) return;
 
     autoplayRef.current = setInterval(() => {
-      if (!isInteracting.current) {
+      if (!isInteracting.current && !autoplayDisabled.current) {
         scrollerRef.current?.scrollBy({
           left: UNIT,
           behavior: "smooth",
@@ -153,6 +156,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
      DOT CLICK
   ----------------------------------------------------- */
   const scrollToIndex = (i) => {
+    autoplayDisabled.current = true;
     scrollerRef.current?.scrollTo({
       left: middleOffset + i * UNIT,
       behavior: prefersReducedMotion ? "auto" : "smooth",
@@ -181,16 +185,16 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       </h2>
 
       <div className="relative max-w-7xl mx-auto px-4">
-        {/* EDGE FADES */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-emerald-900 to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-emerald-900 to-transparent z-10" />
-
-        {/* SCROLLER */}
         <div
           ref={scrollerRef}
-          onPointerDown={() => (isInteracting.current = true)}
+          onPointerDown={() => {
+            isInteracting.current = true;
+            autoplayDisabled.current = true;
+          }}
           onPointerUp={() => (isInteracting.current = false)}
           onPointerLeave={() => (isInteracting.current = false)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
           className="
             flex gap-4 overflow-x-auto
             snap-x snap-mandatory
@@ -198,7 +202,19 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             [-webkit-overflow-scrolling:touch]
             [-ms-overflow-style:none]
             [scrollbar-width:none]
+            sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
+            sm:[-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
           "
+          style={{
+            WebkitMaskImage:
+              hovered
+                ? "linear-gradient(to right, transparent, black 4%, black 96%, transparent)"
+                : undefined,
+            maskImage:
+              hovered
+                ? "linear-gradient(to right, transparent, black 4%, black 96%, transparent)"
+                : undefined,
+          }}
         >
           {items.map((product, i) => {
             const realIndex = i % baseCount;
@@ -209,13 +225,13 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
             const scale =
               dist === 0 ? 1 :
-              dist === 1 ? 0.94 :
-              dist === 2 ? 0.88 : 0.82;
+              dist === 1 ? 0.95 :
+              dist === 2 ? 0.9 : 0.85;
 
             const opacity =
               dist === 0 ? 1 :
-              dist === 1 ? 0.85 :
-              dist === 2 ? 0.7 : 0.55;
+              dist === 1 ? 0.9 :
+              dist === 2 ? 0.75 : 0.6;
 
             return (
               <motion.div
@@ -225,7 +241,14 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                 animate={
                   prefersReducedMotion
                     ? { opacity: 1 }
-                    : { scale, opacity }
+                    : {
+                        scale,
+                        opacity,
+                        filter:
+                          dist === 0
+                            ? "brightness(1)"
+                            : "brightness(0.92)",
+                      }
                 }
                 transition={{ type: "spring", stiffness: 220, damping: 28 }}
               >
@@ -273,7 +296,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           })}
         </div>
 
-        {/* DOTS (SPRING ANIMATED) */}
+        {/* DOTS */}
         <div className="flex justify-center gap-2 mt-6">
           {base.map((_, i) => (
             <motion.button
