@@ -12,17 +12,17 @@ const GAP = 16;
 const STEP = CARD + GAP;
 const AUTOPLAY = 4500;
 
-const glow = "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
-
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------- DATA ---------- */
   const base = useMemo(
     () =>
       [...featuredProducts]
-        .filter((p) => p.isFeatured)
+        .filter(p => p.isFeatured)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [featuredProducts]
   );
+
+  if (!base.length) return null;
 
   const items = useMemo(() => [...base, ...base, ...base], [base]);
   const offset = base.length * STEP;
@@ -40,7 +40,9 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   /* ---------- CENTER ON LOAD ---------- */
   useEffect(() => {
-    if (scroller.current) scroller.current.scrollLeft = offset;
+    if (scroller.current) {
+      scroller.current.scrollLeft = offset;
+    }
   }, [offset]);
 
   /* ---------- AUTOPLAY ---------- */
@@ -53,7 +55,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
       autoplaying.current = true;
       el.scrollBy({ left: STEP, behavior: "smooth" });
-      requestAnimationFrame(() => (autoplaying.current = false));
+
+      requestAnimationFrame(() => {
+        autoplaying.current = false;
+      });
     }, AUTOPLAY);
 
     return () => clearInterval(id);
@@ -115,18 +120,19 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------- RENDER ---------- */
   return (
     <section className="py-20 overflow-x-hidden">
-      <h2 className="text-center text-5xl font-extrabold text-emerald-400 mb-10">
+      <h2 className="mb-10 text-center text-5xl font-extrabold text-emerald-400">
         Featured
       </h2>
 
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="overflow-hidden">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="relative overflow-x-hidden">
           <div
             ref={scroller}
             onPointerDown={stopAutoplay}
             className="
-              flex gap-4 overflow-x-auto snap-x snap-mandatory
-              scrollbar-none overscroll-x-contain
+              flex gap-4
+              overflow-x-scroll snap-x snap-mandatory
+              overscroll-x-contain scrollbar-none
               [-webkit-overflow-scrolling:touch]
               sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
             "
@@ -147,27 +153,31 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     opacity: d === 0 ? 1 : 0.7,
                     y: d === 0 ? -6 : 0,
                   }}
-                  transition={{ type: "spring", stiffness: 220, damping: 28 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 220,
+                    damping: 28,
+                  }}
                 >
                   <div
                     className={`
-                      bg-white/10 backdrop-blur-sm rounded-2xl border
-                      border-emerald-500/30 flex flex-col h-full
-                      ${d === 0 ? glow : ""}
+                      flex h-full flex-col rounded-2xl border
+                      border-emerald-500/30 bg-white/10 backdrop-blur-sm
+                      ${d === 0 ? "glow-emerald" : ""}
                     `}
                   >
                     <img
                       src={p.image}
                       alt={p.name}
-                      className="h-48 w-full object-cover rounded-t-2xl"
+                      className="h-48 w-full rounded-t-2xl object-cover"
                     />
 
-                    <div className="p-4 flex flex-col text-center h-full">
-                      <h3 className="text-lg font-semibold text-white mb-2">
+                    <div className="flex h-full flex-col p-4 text-center">
+                      <h3 className="mb-2 text-lg font-semibold text-white">
                         {p.name}
                       </h3>
 
-                      <p className="text-sm text-emerald-200 line-clamp-2 mb-3">
+                      <p className="mb-3 line-clamp-2 text-sm text-emerald-200">
                         {p.description}
                       </p>
 
@@ -177,8 +187,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                         </span>
 
                         <button
-                          onClick={(e) => add(p, e)}
-                          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-full font-semibold"
+                          onClick={e => add(p, e)}
+                          className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
                         >
                           <FaCartShopping /> Add to Cart
                         </button>
@@ -191,8 +201,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           </div>
         </div>
 
-        {/* DOTS + PLAY */}
-        <div className="flex justify-center items-center gap-4 mt-6">
+        <div className="mt-6 flex items-center justify-center gap-4">
           <div className="flex gap-2">
             {base.map((_, i) => (
               <motion.button
@@ -219,7 +228,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={resumeAutoplay}
-              className="p-2 rounded-full bg-emerald-700/60 text-white"
+              className="rounded-full bg-emerald-700/60 p-2 text-white"
               aria-label="Resume autoplay"
             >
               <FaPlay size={14} />

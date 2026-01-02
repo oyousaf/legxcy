@@ -7,3 +7,9 @@
 * {
   font-family: "Candara", serif;
 }
+
+/* Featured card active glow */
+.glow-emerald {
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.45);
+  border-color: rgba(52, 211, 153, 0.5);
+}
