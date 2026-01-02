@@ -17,7 +17,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const base = useMemo(
     () =>
       [...featuredProducts]
-        .filter(p => p.isFeatured)
+        .filter((p) => p.isFeatured)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [featuredProducts]
   );
@@ -129,13 +129,12 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           <div
             ref={scroller}
             onPointerDown={stopAutoplay}
-            className="
-              flex gap-4
-              overflow-x-scroll snap-x snap-mandatory
-              overscroll-x-contain scrollbar-none
-              [-webkit-overflow-scrolling:touch]
-              sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
-            "
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+            className="flex gap-4 overflow-x-scroll snap-x snap-mandatory overscroll-x-contain
+                       [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
           >
             {items.map((p, i) => {
               const d = Math.min(
@@ -187,7 +186,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                         </span>
 
                         <button
-                          onClick={e => add(p, e)}
+                          onClick={(e) => add(p, e)}
                           className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
                         >
                           <FaCartShopping /> Add to Cart
