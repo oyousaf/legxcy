@@ -12,12 +12,16 @@ const GAP = 16;
 const UNIT = CARD_WIDTH + GAP;
 const AUTOPLAY_INTERVAL = 4500;
 
+// tuning
+const SETTLE_DELAY_BASE = 120;
+const FAST_FLICK_VELOCITY = 1.1;
+
 const centerGlow =
   "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* -----------------------------------------------------
-     DATA
+     DATA (NEW → OLD RESTORED)
   ----------------------------------------------------- */
   const base = useMemo(() => {
     return [...featuredProducts]
@@ -38,9 +42,13 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   ----------------------------------------------------- */
   const scrollerRef = useRef(null);
   const autoplayRef = useRef(null);
+  const settleTimeout = useRef(null);
   const isJumping = useRef(false);
   const isInteracting = useRef(false);
-  const settleTimeout = useRef(null);
+
+  const lastX = useRef(0);
+  const lastT = useRef(0);
+  const velocity = useRef(0);
 
   const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState(0);
@@ -51,24 +59,34 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-
     requestAnimationFrame(() => {
       el.scrollLeft = middleOffset;
+      lastX.current = el.scrollLeft;
+      lastT.current = performance.now();
     });
   }, [middleOffset]);
 
   /* -----------------------------------------------------
-     INFINITE LOOP + ACTIVE INDEX
+     SCROLL LOGIC (INFINITE + VELOCITY)
   ----------------------------------------------------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
     const onScroll = () => {
+      const now = performance.now();
+      const dx = el.scrollLeft - lastX.current;
+      const dt = now - lastT.current || 1;
+
+      velocity.current = Math.abs(dx / dt);
+      lastX.current = el.scrollLeft;
+      lastT.current = now;
+
       if (isJumping.current) return;
 
       const x = el.scrollLeft;
 
+      // teleport left
       if (x < UNIT) {
         isJumping.current = true;
         el.scrollLeft = x + middleOffset;
@@ -76,6 +94,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
         return;
       }
 
+      // teleport right
       if (x > middleOffset * 2) {
         isJumping.current = true;
         el.scrollLeft = x - middleOffset;
@@ -83,19 +102,29 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
         return;
       }
 
-      const idx = Math.round(x / UNIT) % baseCount;
-      setActive(idx);
+      const rawIndex = Math.round(x / UNIT);
+      const logicalIndex =
+        ((rawIndex % baseCount) + baseCount) % baseCount;
 
-      /* Magnetic settle */
-      if (!prefersReducedMotion) {
+      setActive(logicalIndex);
+
+      /* Magnetic settle (velocity-aware) */
+      if (
+        prefersReducedMotion ||
+        isInteracting.current ||
+        velocity.current > FAST_FLICK_VELOCITY
+      ) {
         clearTimeout(settleTimeout.current);
-        settleTimeout.current = setTimeout(() => {
-          el.scrollTo({
-            left: middleOffset + idx * UNIT,
-            behavior: "smooth",
-          });
-        }, 120);
+        return;
       }
+
+      clearTimeout(settleTimeout.current);
+      settleTimeout.current = setTimeout(() => {
+        el.scrollTo({
+          left: rawIndex * UNIT,
+          behavior: "smooth",
+        });
+      }, SETTLE_DELAY_BASE + velocity.current * 80);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -152,7 +181,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       </h2>
 
       <div className="relative max-w-7xl mx-auto px-4">
-        {/* EDGE FADE MASKS */}
+        {/* EDGE FADES */}
         <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-emerald-900 to-transparent z-10" />
         <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-emerald-900 to-transparent z-10" />
 
@@ -244,17 +273,18 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           })}
         </div>
 
-        {/* DOTS */}
+        {/* DOTS (SPRING ANIMATED) */}
         <div className="flex justify-center gap-2 mt-6">
           {base.map((_, i) => (
-            <button
+            <motion.button
               key={i}
               onClick={() => scrollToIndex(i)}
-              className={`h-2 rounded-full transition-all ${
-                i === active
-                  ? "w-6 bg-emerald-400"
-                  : "w-2 bg-emerald-400/40"
-              }`}
+              animate={{
+                width: i === active ? 24 : 8,
+                opacity: i === active ? 1 : 0.4,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              className="h-2 rounded-full bg-emerald-400"
             />
           ))}
         </div>
