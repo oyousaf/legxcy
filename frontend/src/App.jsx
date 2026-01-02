@@ -1,19 +1,22 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/react";
+
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 import HomePage from "./pages/HomePage";
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import CategoryPage from "./pages/CategoryPage";
-import Navbar from "./components/Navbar";
-import { Toaster } from "react-hot-toast";
-import { useUserStore } from "./stores/useUserStore";
-import { useEffect } from "react";
 import CartPage from "./pages/CartPage";
-import { useCartStore } from "./stores/useCartStore";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import { Analytics } from "@vercel/analytics/react";
+
+import { useUserStore } from "./stores/useUserStore";
+import { useCartStore } from "./stores/useCartStore";
 
 function App() {
   const { user, checkAuth } = useUserStore();
@@ -24,29 +27,33 @@ function App() {
   }, [checkAuth]);
 
   useEffect(() => {
-    if (!user) return;
-    getCartItems();
-  }, [getCartItems, user]);
+    if (user) getCartItems();
+  }, [user, getCartItems]);
 
   return (
-    <div className="min-h-screen bg-[#003632] text-white relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.3)_0%,rgba(0,54,50,0.2)_45%,rgba(0,0,0,0.1)_100%)]" />
-        </div>
+    <div className="relative min-h-screen bg-[#003632] text-white overflow-x-hidden">
+      {/* BACKGROUND GRADIENT */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.3)_0%,rgba(0,54,50,0.2)_45%,rgba(0,0,0,0.1)_100%)]" />
       </div>
-      <div className="relative z-50 pt-20">
+
+      {/* APP CONTENT */}
+      <div className="relative z-10 pt-20">
         <Navbar />
+
         <Routes>
           <Route path="/" element={<HomePage />} />
+
           <Route
             path="/signup"
             element={!user ? <SignupPage /> : <Navigate to="/" />}
           />
+
           <Route
             path="/login"
             element={!user ? <LoginPage /> : <Navigate to="/" />}
           />
+
           <Route
             path="/secret-dashboard"
             element={
@@ -55,7 +62,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route path="/category/:category" element={<CategoryPage />} />
+
           <Route
             path="/cart"
             element={
@@ -64,6 +73,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/purchase-success"
             element={
@@ -72,6 +82,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/purchase-cancel"
             element={
@@ -82,6 +93,7 @@ function App() {
           />
         </Routes>
       </div>
+
       <Toaster />
       <Analytics />
     </div>
