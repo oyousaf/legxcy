@@ -1,128 +1,171 @@
 import logo from "/logo.png";
-
 import { Link } from "react-router-dom";
-import { FaUserPlus } from "react-icons/fa";
-import { FaCartShopping, FaLock } from "react-icons/fa6";
+import { motion } from "framer-motion";
+import { FaUserPlus, FaCartShopping, FaLock } from "react-icons/fa6";
 import { LuLogIn, LuLogOut } from "react-icons/lu";
 import { GoHomeFill } from "react-icons/go";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
 import { useState } from "react";
-
 import ProfileModal from "./ProfileModal";
 
-const Navbar = () => {
+const MotionLink = motion(Link);
+const MotionButton = motion.button;
+
+const hoverTap = {
+  whileHover: { scale: 1.06 },
+  whileTap: { scale: 0.96 },
+};
+
+export default function Navbar() {
   const { user, profile, logout } = useUserStore();
   const isAdmin = profile?.role === "admin";
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const { cart } = useCartStore();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-[#003632] bg-opacity-90 backdrop-blur-md shadow-lg z-40 transition-all duration-300 border-b border-emerald-800">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex flex-wrap justify-between items-center">
-          <Link to="/" className="items-center space-x-2 flex">
-            <img src={logo} width={100} height={40} />
+    <header
+      className="
+      fixed inset-x-0 top-0 z-40
+      bg-[#003632]/80 backdrop-blur-xl
+      border-b border-emerald-800
+      overflow-x-clip
+    "
+    >
+      <div className="mx-auto max-w-7xl px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* LOGO */}
+          <Link to="/" className="flex items-center">
+            <img
+              src={logo}
+              alt="Legxcy"
+              width={100}
+              height={40}
+              draggable={false}
+              className="select-none"
+            />
           </Link>
 
-          <nav className="flex flex-wrap items-center gap-4">
-            <Link
-              to={"/"}
-              className="hover:text-emerald-400 transition duration-300
-					 ease-in-out"
+          {/* NAV ACTIONS */}
+          <nav className="flex items-center gap-3">
+            <MotionLink
+              to="/"
+              {...hoverTap}
+              className="rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              aria-label="Home"
             >
               <GoHomeFill size={20} />
-            </Link>
+            </MotionLink>
+
             {user && (
-              <Link
-                to={"/cart"}
-                className="relative group transition duration-300 ease-in-out"
+              <MotionLink
+                to="/cart"
+                {...hoverTap}
+                className="relative rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                aria-label="Cart"
               >
-                <FaCartShopping
-                  className="inline-block mr-1 group-hover:text-emerald-400 transition duration-300 ease-in-out"
-                  size={20}
-                />
+                <FaCartShopping size={20} />
                 {cart.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-xs group-hover:bg-emerald-400 transition duration-300 ease-in-out">
+                  <span
+                    className="
+                    absolute -top-1.5 -right-1.5
+                    rounded-full bg-emerald-500
+                    px-1.5 py-0.5 text-[10px] font-semibold text-white
+                  "
+                  >
                     {cart.length}
                   </span>
                 )}
-              </Link>
+              </MotionLink>
             )}
+
             {isAdmin && (
-              <Link
-                className="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1 rounded-md font-medium transition duration-300
-					 ease-in-out flex items-center"
-                to={"/secret-dashboard"}
+              <MotionLink
+                to="/secret-dashboard"
+                {...hoverTap}
+                className="
+                  hidden sm:flex items-center gap-1
+                  rounded-md bg-emerald-700 px-3 py-1.5
+                  text-sm font-medium text-white
+                  hover:bg-emerald-600
+                "
               >
-                <FaLock className="inline-block mr-1" size={18} />
-                <span className="hidden sm:inline">Dashboard</span>
-              </Link>
+                <FaLock size={16} />
+                Dashboard
+              </MotionLink>
             )}
 
             {user ? (
               <>
-                {!isAdmin ? (
-                  <button
-                    onClick={() => setProfileModalOpen(true)}
-                    className="text-white px-3 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
-                    aria-label="Open profile"
-                    type="button"
-                  >
-                    {profile?.name ? `Hi, ${profile.name}` : user.email}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setProfileModalOpen(true)}
-                    className="text-white px-3 hover:underline focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
-                    aria-label="Open admin profile"
-                    type="button"
-                  >
-                    {profile?.name ? `Hi, ${profile.name}` : user.email}{" "}
-                    <b>(Admin)</b>
-                  </button>
-                )}
-
-                <button
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 px-4 rounded-md flex items-center transition duration-300 ease-in-out"
-                  onClick={logout}
+                <MotionButton
+                  {...hoverTap}
+                  onClick={() => setProfileModalOpen(true)}
+                  className="
+                    hidden sm:block rounded-md px-3 py-1.5
+                    text-sm text-white/90
+                    hover:underline
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400
+                  "
                 >
-                  <LuLogOut size={18} />
-                  <span className="hidden sm:inline ml-2">Logout</span>
-                </button>
+                  {profile?.name ?? user.email}
+                  {isAdmin && <b> (Admin)</b>}
+                </MotionButton>
+
+                <MotionButton
+                  {...hoverTap}
+                  onClick={logout}
+                  className="
+                    flex items-center gap-2
+                    rounded-md bg-emerald-500 px-4 py-2
+                    text-sm font-medium text-white
+                    hover:bg-emerald-400
+                  "
+                >
+                  <LuLogOut size={16} />
+                  <span className="hidden sm:inline">Logout</span>
+                </MotionButton>
               </>
             ) : (
               <>
-                <Link
-                  to={"/signup"}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-md flex items-center transition duration-300
-            ease-in-out"
+                <MotionLink
+                  to="/signup"
+                  {...hoverTap}
+                  className="
+                    flex items-center gap-2
+                    rounded-md bg-emerald-600 px-4 py-2
+                    text-sm font-medium text-white
+                    hover:bg-emerald-700
+                  "
                 >
-                  <FaUserPlus className="mr-2" size={18} />
+                  <FaUserPlus size={16} />
                   Sign Up
-                </Link>
+                </MotionLink>
 
-                <Link
-                  to={"/login"}
-                  className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md flex items-center transition duration-300
-            ease-in-out"
+                <MotionLink
+                  to="/login"
+                  {...hoverTap}
+                  className="
+                    flex items-center gap-2
+                    rounded-md bg-gray-600 px-4 py-2
+                    text-sm font-medium text-white
+                    hover:bg-gray-700
+                  "
                 >
-                  <LuLogIn size={18} />
-                  <span className="hidden sm:inline ml-2">Login</span>
-                </Link>
+                  <LuLogIn size={16} />
+                  <span className="hidden sm:inline">Login</span>
+                </MotionLink>
               </>
             )}
           </nav>
-          {profileModalOpen && (
-            <ProfileModal
-              open={profileModalOpen}
-              onClose={() => setProfileModalOpen(false)}
-            />
-          )}
         </div>
       </div>
+
+      {profileModalOpen && (
+        <ProfileModal
+          open={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+        />
+      )}
     </header>
   );
-};
-
-export default Navbar;
+}
