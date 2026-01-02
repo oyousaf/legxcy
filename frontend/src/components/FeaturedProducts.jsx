@@ -7,22 +7,21 @@ import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
+/* ---------------- CONSTANTS ---------------- */
 const CARD_WIDTH = 320;
 const GAP = 16;
 const UNIT = CARD_WIDTH + GAP;
 const AUTOPLAY_INTERVAL = 4500;
 
-// tuning
 const SETTLE_DELAY_BASE = 120;
 const FAST_FLICK_VELOCITY = 1.1;
 
 const centerGlow =
   "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
 
+/* ---------------- COMPONENT ---------------- */
 export default function FeaturedProducts({ featuredProducts = [] }) {
-  /* -----------------------------------------------------
-     DATA (NEW → OLD)
-  ----------------------------------------------------- */
+  /* ---------------- DATA ---------------- */
   const base = useMemo(() => {
     return [...featuredProducts]
       .filter((p) => p.isFeatured)
@@ -37,16 +36,16 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const items = useMemo(() => [...base, ...base, ...base], [base]);
   const middleOffset = baseCount * UNIT;
 
-  /* -----------------------------------------------------
-     REFS / STATE
-  ----------------------------------------------------- */
+  /* ---------------- REFS ---------------- */
   const scrollerRef = useRef(null);
   const autoplayRef = useRef(null);
   const settleTimeout = useRef(null);
 
   const isJumping = useRef(false);
   const isInteracting = useRef(false);
-  const autoplayDisabled = useRef(false);
+  const hasUserInteracted = useRef(false);
+  const tabPaused = useRef(false);
+  const ignoreNextScroll = useRef(true);
 
   const lastX = useRef(0);
   const lastT = useRef(0);
@@ -56,9 +55,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
 
-  /* -----------------------------------------------------
-     INITIAL CENTER
-  ----------------------------------------------------- */
+  /* ---------------- INITIAL CENTER ---------------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -67,18 +64,31 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       el.scrollLeft = middleOffset;
       lastX.current = el.scrollLeft;
       lastT.current = performance.now();
+      setTimeout(() => {
+        ignoreNextScroll.current = false;
+      }, 0);
     });
   }, [middleOffset]);
 
-  /* -----------------------------------------------------
-     SCROLL LOGIC (INFINITE + VELOCITY)
-  ----------------------------------------------------- */
+  /* ---------------- VISIBILITY ---------------- */
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      tabPaused.current = document.visibilityState === "hidden";
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  /* ---------------- SCROLL LOGIC ---------------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
     const onScroll = () => {
-      autoplayDisabled.current = true;
+      if (ignoreNextScroll.current) return;
+
+      hasUserInteracted.current = true;
 
       const now = performance.now();
       const dx = el.scrollLeft - lastX.current;
@@ -134,14 +144,16 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     return () => el.removeEventListener("scroll", onScroll);
   }, [baseCount, middleOffset, prefersReducedMotion]);
 
-  /* -----------------------------------------------------
-     AUTOPLAY (DISABLED AFTER INTERACTION)
-  ----------------------------------------------------- */
+  /* ---------------- AUTOPLAY ---------------- */
   useEffect(() => {
     if (prefersReducedMotion) return;
 
     autoplayRef.current = setInterval(() => {
-      if (!isInteracting.current && !autoplayDisabled.current) {
+      if (
+        !hasUserInteracted.current &&
+        !isInteracting.current &&
+        !tabPaused.current
+      ) {
         scrollerRef.current?.scrollBy({
           left: UNIT,
           behavior: "smooth",
@@ -152,32 +164,27 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     return () => clearInterval(autoplayRef.current);
   }, [prefersReducedMotion]);
 
-  /* -----------------------------------------------------
-     DOT CLICK
-  ----------------------------------------------------- */
+  /* ---------------- DOT CLICK ---------------- */
   const scrollToIndex = (i) => {
-    autoplayDisabled.current = true;
+    hasUserInteracted.current = true;
     scrollerRef.current?.scrollTo({
       left: middleOffset + i * UNIT,
       behavior: prefersReducedMotion ? "auto" : "smooth",
     });
   };
 
-  /* -----------------------------------------------------
-     CART
-  ----------------------------------------------------- */
+  /* ---------------- CART ---------------- */
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
 
   const handleAddToCart = (p, e) => {
     e.stopPropagation();
+    hasUserInteracted.current = true;
     if (!user) return toast.error("Please log in");
     addToCart(p);
   };
 
-  /* -----------------------------------------------------
-     RENDER
-  ----------------------------------------------------- */
+  /* ---------------- RENDER ---------------- */
   return (
     <section className="relative py-20">
       <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
@@ -187,10 +194,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       <div className="relative max-w-7xl mx-auto px-4">
         <div
           ref={scrollerRef}
-          onPointerDown={() => {
-            isInteracting.current = true;
-            autoplayDisabled.current = true;
-          }}
+          onPointerDown={() => (isInteracting.current = true)}
           onPointerUp={() => (isInteracting.current = false)}
           onPointerLeave={() => (isInteracting.current = false)}
           onMouseEnter={() => setHovered(true)}
@@ -233,6 +237,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
               dist === 1 ? 0.9 :
               dist === 2 ? 0.75 : 0.6;
 
+            const lift = dist === 0 ? -6 : 0;
+
             return (
               <motion.div
                 key={`${product.id}-${i}`}
@@ -244,6 +250,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     : {
                         scale,
                         opacity,
+                        y: lift,
                         filter:
                           dist === 0
                             ? "brightness(1)"
