@@ -2,266 +2,229 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { FaCartShopping } from "react-icons/fa6";
+import { FaCartShopping, FaPlay } from "react-icons/fa6";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-/* ---------------- CONSTANTS ---------------- */
-const CARD_WIDTH = 320;
+const CARD = 320;
 const GAP = 16;
-const UNIT = CARD_WIDTH + GAP;
-const AUTOPLAY_INTERVAL = 4500;
+const STEP = CARD + GAP;
+const AUTOPLAY = 4500;
 
-const FAST_FLICK_VELOCITY = 1.1;
+const glow = "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
 
-const centerGlow =
-  "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
-
-/* ---------------- COMPONENT ---------------- */
 export default function FeaturedProducts({ featuredProducts = [] }) {
-  /* ---------------- DATA ---------------- */
-  const base = useMemo(() => {
-    return [...featuredProducts]
-      .filter((p) => p.isFeatured)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-      );
-  }, [featuredProducts]);
+  /* ---------- DATA ---------- */
+  const base = useMemo(
+    () =>
+      [...featuredProducts]
+        .filter((p) => p.isFeatured)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [featuredProducts]
+  );
 
-  const baseCount = base.length;
   const items = useMemo(() => [...base, ...base, ...base], [base]);
-  const middleOffset = baseCount * UNIT;
+  const offset = base.length * STEP;
 
-  /* ---------------- REFS ---------------- */
-  const scrollerRef = useRef(null);
-  const autoplayRef = useRef(null);
-
-  const isJumping = useRef(false);
-  const isUserIntent = useRef(false);
-  const isProgrammatic = useRef(false);
-
-  const lastX = useRef(0);
-  const lastT = useRef(0);
-  const velocity = useRef(0);
-
+  /* ---------- STATE ---------- */
   const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const [showPlay, setShowPlay] = useState(false);
 
-  /* ---------------- INITIAL CENTER ---------------- */
+  /* ---------- REFS ---------- */
+  const scroller = useRef(null);
+  const jumping = useRef(false);
+  const autoplaying = useRef(false);
+
+  /* ---------- CENTER ON LOAD ---------- */
   useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
+    if (scroller.current) scroller.current.scrollLeft = offset;
+  }, [offset]);
 
-    isProgrammatic.current = true;
-
-    requestAnimationFrame(() => {
-      el.scrollLeft = middleOffset;
-      lastX.current = el.scrollLeft;
-      lastT.current = performance.now();
-
-      requestAnimationFrame(() => {
-        isProgrammatic.current = false;
-      });
-    });
-  }, [middleOffset]);
-
-  /* ---------------- SCROLL HANDLING ---------------- */
+  /* ---------- AUTOPLAY ---------- */
   useEffect(() => {
-    const el = scrollerRef.current;
+    if (!autoplay || prefersReducedMotion) return;
+
+    const id = setInterval(() => {
+      const el = scroller.current;
+      if (!el) return;
+
+      autoplaying.current = true;
+      el.scrollBy({ left: STEP, behavior: "smooth" });
+      requestAnimationFrame(() => (autoplaying.current = false));
+    }, AUTOPLAY);
+
+    return () => clearInterval(id);
+  }, [autoplay, prefersReducedMotion]);
+
+  /* ---------- SCROLL (INDEX + LOOP) ---------- */
+  useEffect(() => {
+    const el = scroller.current;
     if (!el) return;
 
     const onScroll = () => {
-      if (isProgrammatic.current) return;
-
-      // real user intent
-      isUserIntent.current = true;
-
-      const now = performance.now();
-      const dx = el.scrollLeft - lastX.current;
-      const dt = now - lastT.current || 1;
-
-      velocity.current = Math.abs(dx / dt);
-      lastX.current = el.scrollLeft;
-      lastT.current = now;
-
-      if (isJumping.current) return;
+      if (autoplaying.current || jumping.current) return;
 
       const x = el.scrollLeft;
 
-      // infinite loop correction
-      if (x < UNIT) {
-        isJumping.current = true;
-        el.scrollLeft = x + middleOffset;
-        isJumping.current = false;
+      if (x < STEP) {
+        jumping.current = true;
+        el.scrollLeft = x + offset;
+        jumping.current = false;
         return;
       }
 
-      if (x > middleOffset * 2) {
-        isJumping.current = true;
-        el.scrollLeft = x - middleOffset;
-        isJumping.current = false;
+      if (x > offset * 2) {
+        jumping.current = true;
+        el.scrollLeft = x - offset;
+        jumping.current = false;
         return;
       }
 
-      const rawIndex = Math.round(x / UNIT);
-      const logicalIndex =
-        ((rawIndex % baseCount) + baseCount) % baseCount;
-
-      setActive(logicalIndex);
+      setActive(Math.round(x / STEP) % base.length);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [baseCount, middleOffset]);
+  }, [base.length, offset]);
 
-  /* ---------------- AUTOPLAY (SIMPLE + RELIABLE) ---------------- */
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
-    autoplayRef.current = setInterval(() => {
-      if (!isUserIntent.current) {
-        scrollerRef.current?.scrollBy({
-          left: UNIT,
-          behavior: "smooth",
-        });
-      }
-    }, AUTOPLAY_INTERVAL);
-
-    return () => clearInterval(autoplayRef.current);
-  }, [prefersReducedMotion]);
-
-  /* ---------------- DOT CLICK ---------------- */
-  const scrollToIndex = (i) => {
-    isUserIntent.current = true;
-    scrollerRef.current?.scrollTo({
-      left: middleOffset + i * UNIT,
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-    });
+  /* ---------- USER INTENT ---------- */
+  const stopAutoplay = () => {
+    setAutoplay(false);
+    setShowPlay(true);
   };
 
-  /* ---------------- CART ---------------- */
+  const resumeAutoplay = () => {
+    setAutoplay(true);
+    setShowPlay(false);
+  };
+
+  /* ---------- CART ---------- */
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
 
-  const handleAddToCart = (p, e) => {
+  const add = (p, e) => {
     e.stopPropagation();
-    isUserIntent.current = true;
+    stopAutoplay();
     if (!user) return toast.error("Please log in");
     addToCart(p);
   };
 
-  /* ---------------- RENDER ---------------- */
+  /* ---------- RENDER ---------- */
   return (
-    <section className="relative py-20">
-      <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
+    <section className="py-20 overflow-x-hidden">
+      <h2 className="text-center text-5xl font-extrabold text-emerald-400 mb-10">
         Featured
       </h2>
 
-      <div className="relative max-w-7xl mx-auto px-4">
-        <div
-          ref={scrollerRef}
-          className="
-            flex gap-4 overflow-x-auto
-            snap-x snap-mandatory
-            scrollbar-none
-            [-webkit-overflow-scrolling:touch]
-            [-ms-overflow-style:none]
-            [scrollbar-width:none]
-            sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
-            sm:[-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
-          "
-        >
-          {items.map((product, i) => {
-            const realIndex = i % baseCount;
-            const dist = Math.min(
-              Math.abs(realIndex - active),
-              baseCount - Math.abs(realIndex - active)
-            );
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="overflow-hidden">
+          <div
+            ref={scroller}
+            onPointerDown={stopAutoplay}
+            className="
+              flex gap-4 overflow-x-auto snap-x snap-mandatory
+              scrollbar-none overscroll-x-contain
+              [-webkit-overflow-scrolling:touch]
+              sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
+            "
+          >
+            {items.map((p, i) => {
+              const d = Math.min(
+                Math.abs((i % base.length) - active),
+                base.length
+              );
 
-            const scale =
-              dist === 0 ? 1 :
-              dist === 1 ? 0.95 :
-              dist === 2 ? 0.9 : 0.85;
-
-            const opacity =
-              dist === 0 ? 1 :
-              dist === 1 ? 0.9 :
-              dist === 2 ? 0.75 : 0.6;
-
-            const lift = dist === 0 ? -6 : 0;
-
-            return (
-              <motion.div
-                key={`${product.id}-${i}`}
-                className="snap-center shrink-0"
-                style={{ width: CARD_WIDTH }}
-                animate={
-                  prefersReducedMotion
-                    ? { opacity: 1 }
-                    : { scale, opacity, y: lift }
-                }
-                transition={{ type: "spring", stiffness: 220, damping: 28 }}
-              >
-                <div
-                  className={`
-                    bg-white/10 backdrop-blur-sm
-                    rounded-2xl border border-emerald-500/30
-                    flex flex-col h-full
-                    ${dist === 0 ? centerGlow : ""}
-                  `}
+              return (
+                <motion.div
+                  key={`${p.id}-${i}`}
+                  className="snap-center shrink-0"
+                  style={{ width: CARD }}
+                  animate={{
+                    scale: d === 0 ? 1 : 0.9,
+                    opacity: d === 0 ? 1 : 0.7,
+                    y: d === 0 ? -6 : 0,
+                  }}
+                  transition={{ type: "spring", stiffness: 220, damping: 28 }}
                 >
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-48 w-full object-cover rounded-t-2xl"
-                  />
+                  <div
+                    className={`
+                      bg-white/10 backdrop-blur-sm rounded-2xl border
+                      border-emerald-500/30 flex flex-col h-full
+                      ${d === 0 ? glow : ""}
+                    `}
+                  >
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      className="h-48 w-full object-cover rounded-t-2xl"
+                    />
 
-                  <div className="p-4 flex flex-col text-center h-full">
-                    <h3 className="text-lg font-semibold text-white mb-2">
-                      {product.name}
-                    </h3>
+                    <div className="p-4 flex flex-col text-center h-full">
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        {p.name}
+                      </h3>
 
-                    <p className="text-sm text-emerald-200 line-clamp-2 mb-3">
-                      {product.description}
-                    </p>
+                      <p className="text-sm text-emerald-200 line-clamp-2 mb-3">
+                        {p.description}
+                      </p>
 
-                    <div className="mt-auto flex flex-col items-center gap-3">
-                      <span className="text-2xl font-extrabold text-gray-200">
-                        £{product.price.toFixed()}
-                      </span>
+                      <div className="mt-auto flex flex-col items-center gap-3">
+                        <span className="text-2xl font-extrabold text-gray-200">
+                          £{p.price.toFixed()}
+                        </span>
 
-                      <button
-                        onClick={(e) => handleAddToCart(product, e)}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-full font-semibold"
-                      >
-                        <FaCartShopping />
-                        Add to Cart
-                      </button>
+                        <button
+                          onClick={(e) => add(p, e)}
+                          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-full font-semibold"
+                        >
+                          <FaCartShopping /> Add to Cart
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* DOTS */}
-        <div className="flex justify-center gap-2 mt-6">
-          {base.map((_, i) => (
+        {/* DOTS + PLAY */}
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <div className="flex gap-2">
+            {base.map((_, i) => (
+              <motion.button
+                key={i}
+                onClick={() => {
+                  stopAutoplay();
+                  scroller.current.scrollTo({
+                    left: offset + i * STEP,
+                    behavior: "smooth",
+                  });
+                }}
+                animate={{
+                  width: i === active ? 24 : 8,
+                  opacity: i === active ? 1 : 0.4,
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                className="h-2 rounded-full bg-emerald-400"
+              />
+            ))}
+          </div>
+
+          {showPlay && (
             <motion.button
-              key={i}
-              onClick={() => scrollToIndex(i)}
-              animate={{
-                width: i === active ? 24 : 8,
-                opacity: i === active ? 1 : 0.4,
-              }}
-              transition={{ type: "spring", stiffness: 300, damping: 24 }}
-              className="h-2 rounded-full bg-emerald-400"
-            />
-          ))}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={resumeAutoplay}
+              className="p-2 rounded-full bg-emerald-700/60 text-white"
+              aria-label="Resume autoplay"
+            >
+              <FaPlay size={14} />
+            </motion.button>
+          )}
         </div>
       </div>
     </section>
