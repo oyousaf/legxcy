@@ -13,7 +13,6 @@ const GAP = 16;
 const UNIT = CARD_WIDTH + GAP;
 const AUTOPLAY_INTERVAL = 4500;
 
-const SETTLE_DELAY_BASE = 120;
 const FAST_FLICK_VELOCITY = 1.1;
 
 const centerGlow =
@@ -39,13 +38,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------------- REFS ---------------- */
   const scrollerRef = useRef(null);
   const autoplayRef = useRef(null);
-  const settleTimeout = useRef(null);
 
   const isJumping = useRef(false);
-  const isInteracting = useRef(false);
-  const hasUserInteracted = useRef(false);
-  const tabPaused = useRef(false);
-  const ignoreNextScroll = useRef(true);
+  const isUserIntent = useRef(false);
+  const isProgrammatic = useRef(false);
 
   const lastX = useRef(0);
   const lastT = useRef(0);
@@ -53,42 +49,35 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState(0);
-  const [hovered, setHovered] = useState(false);
 
   /* ---------------- INITIAL CENTER ---------------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
+    isProgrammatic.current = true;
+
     requestAnimationFrame(() => {
       el.scrollLeft = middleOffset;
       lastX.current = el.scrollLeft;
       lastT.current = performance.now();
-      setTimeout(() => {
-        ignoreNextScroll.current = false;
-      }, 0);
+
+      requestAnimationFrame(() => {
+        isProgrammatic.current = false;
+      });
     });
   }, [middleOffset]);
 
-  /* ---------------- VISIBILITY ---------------- */
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      tabPaused.current = document.visibilityState === "hidden";
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, []);
-
-  /* ---------------- SCROLL LOGIC ---------------- */
+  /* ---------------- SCROLL HANDLING ---------------- */
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
 
     const onScroll = () => {
-      if (ignoreNextScroll.current) return;
+      if (isProgrammatic.current) return;
 
-      hasUserInteracted.current = true;
+      // real user intent
+      isUserIntent.current = true;
 
       const now = performance.now();
       const dx = el.scrollLeft - lastX.current;
@@ -102,6 +91,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
       const x = el.scrollLeft;
 
+      // infinite loop correction
       if (x < UNIT) {
         isJumping.current = true;
         el.scrollLeft = x + middleOffset;
@@ -121,39 +111,18 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
         ((rawIndex % baseCount) + baseCount) % baseCount;
 
       setActive(logicalIndex);
-
-      if (
-        prefersReducedMotion ||
-        isInteracting.current ||
-        velocity.current > FAST_FLICK_VELOCITY
-      ) {
-        clearTimeout(settleTimeout.current);
-        return;
-      }
-
-      clearTimeout(settleTimeout.current);
-      settleTimeout.current = setTimeout(() => {
-        el.scrollTo({
-          left: rawIndex * UNIT,
-          behavior: "smooth",
-        });
-      }, SETTLE_DELAY_BASE + velocity.current * 80);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [baseCount, middleOffset, prefersReducedMotion]);
+  }, [baseCount, middleOffset]);
 
-  /* ---------------- AUTOPLAY ---------------- */
+  /* ---------------- AUTOPLAY (SIMPLE + RELIABLE) ---------------- */
   useEffect(() => {
     if (prefersReducedMotion) return;
 
     autoplayRef.current = setInterval(() => {
-      if (
-        !hasUserInteracted.current &&
-        !isInteracting.current &&
-        !tabPaused.current
-      ) {
+      if (!isUserIntent.current) {
         scrollerRef.current?.scrollBy({
           left: UNIT,
           behavior: "smooth",
@@ -166,7 +135,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   /* ---------------- DOT CLICK ---------------- */
   const scrollToIndex = (i) => {
-    hasUserInteracted.current = true;
+    isUserIntent.current = true;
     scrollerRef.current?.scrollTo({
       left: middleOffset + i * UNIT,
       behavior: prefersReducedMotion ? "auto" : "smooth",
@@ -179,7 +148,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const handleAddToCart = (p, e) => {
     e.stopPropagation();
-    hasUserInteracted.current = true;
+    isUserIntent.current = true;
     if (!user) return toast.error("Please log in");
     addToCart(p);
   };
@@ -194,11 +163,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       <div className="relative max-w-7xl mx-auto px-4">
         <div
           ref={scrollerRef}
-          onPointerDown={() => (isInteracting.current = true)}
-          onPointerUp={() => (isInteracting.current = false)}
-          onPointerLeave={() => (isInteracting.current = false)}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
           className="
             flex gap-4 overflow-x-auto
             snap-x snap-mandatory
@@ -209,16 +173,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             sm:[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
             sm:[-webkit-mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]
           "
-          style={{
-            WebkitMaskImage:
-              hovered
-                ? "linear-gradient(to right, transparent, black 4%, black 96%, transparent)"
-                : undefined,
-            maskImage:
-              hovered
-                ? "linear-gradient(to right, transparent, black 4%, black 96%, transparent)"
-                : undefined,
-          }}
         >
           {items.map((product, i) => {
             const realIndex = i % baseCount;
@@ -247,15 +201,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                 animate={
                   prefersReducedMotion
                     ? { opacity: 1 }
-                    : {
-                        scale,
-                        opacity,
-                        y: lift,
-                        filter:
-                          dist === 0
-                            ? "brightness(1)"
-                            : "brightness(0.92)",
-                      }
+                    : { scale, opacity, y: lift }
                 }
                 transition={{ type: "spring", stiffness: 220, damping: 28 }}
               >
@@ -271,7 +217,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     src={product.image}
                     alt={product.name}
                     className="h-48 w-full object-cover rounded-t-2xl"
-                    loading="lazy"
                   />
 
                   <div className="p-4 flex flex-col text-center h-full">
