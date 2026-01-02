@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { FaCartShopping } from "react-icons/fa6";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
@@ -19,10 +19,15 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   /* -----------------------------------------------------
      DATA
   ----------------------------------------------------- */
-  const base = useMemo(
-    () => featuredProducts.filter((p) => p.isFeatured),
-    [featuredProducts]
-  );
+  const base = useMemo(() => {
+    return [...featuredProducts]
+      .filter((p) => p.isFeatured)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() -
+          new Date(a.createdAt).getTime()
+      );
+  }, [featuredProducts]);
 
   const baseCount = base.length;
   const items = useMemo(() => [...base, ...base, ...base], [base]);
@@ -35,7 +40,9 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const autoplayRef = useRef(null);
   const isJumping = useRef(false);
   const isInteracting = useRef(false);
+  const settleTimeout = useRef(null);
 
+  const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState(0);
 
   /* -----------------------------------------------------
@@ -78,16 +85,29 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
       const idx = Math.round(x / UNIT) % baseCount;
       setActive(idx);
+
+      /* Magnetic settle */
+      if (!prefersReducedMotion) {
+        clearTimeout(settleTimeout.current);
+        settleTimeout.current = setTimeout(() => {
+          el.scrollTo({
+            left: middleOffset + idx * UNIT,
+            behavior: "smooth",
+          });
+        }, 120);
+      }
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [baseCount, middleOffset]);
+  }, [baseCount, middleOffset, prefersReducedMotion]);
 
   /* -----------------------------------------------------
      AUTOPLAY
   ----------------------------------------------------- */
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     autoplayRef.current = setInterval(() => {
       if (!isInteracting.current) {
         scrollerRef.current?.scrollBy({
@@ -98,7 +118,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     }, AUTOPLAY_INTERVAL);
 
     return () => clearInterval(autoplayRef.current);
-  }, []);
+  }, [prefersReducedMotion]);
 
   /* -----------------------------------------------------
      DOT CLICK
@@ -106,7 +126,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const scrollToIndex = (i) => {
     scrollerRef.current?.scrollTo({
       left: middleOffset + i * UNIT,
-      behavior: "smooth",
+      behavior: prefersReducedMotion ? "auto" : "smooth",
     });
   };
 
@@ -132,6 +152,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       </h2>
 
       <div className="relative max-w-7xl mx-auto px-4">
+        {/* EDGE FADE MASKS */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-emerald-900 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-emerald-900 to-transparent z-10" />
+
         {/* SCROLLER */}
         <div
           ref={scrollerRef}
@@ -169,7 +193,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                 key={`${product.id}-${i}`}
                 className="snap-center shrink-0"
                 style={{ width: CARD_WIDTH }}
-                animate={{ scale, opacity }}
+                animate={
+                  prefersReducedMotion
+                    ? { opacity: 1 }
+                    : { scale, opacity }
+                }
                 transition={{ type: "spring", stiffness: 220, damping: 28 }}
               >
                 <div
