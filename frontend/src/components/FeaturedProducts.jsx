@@ -1,198 +1,124 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FaCartShopping, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
+import { FaCartShopping } from "react-icons/fa6";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
+const CARD_WIDTH = 320;
+const GAP = 16;
+const UNIT = CARD_WIDTH + GAP;
 const AUTOPLAY_INTERVAL = 4500;
-const SWIPE_THRESHOLD = 55;
 
 const centerGlow =
   "shadow-[0_0_28px_rgba(16,185,129,0.45)] border-emerald-400/50";
 
-const depthBlur = {
-  0: "blur-0 opacity-100",
-  1: "blur-[1px] opacity-90",
-  2: "blur-[2px] opacity-80",
-  3: "blur-[3px] opacity-70",
-};
-
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* -----------------------------------------------------
-     SORT NEW → OLD
+     DATA
   ----------------------------------------------------- */
-  const sorted = useMemo(() => {
-    return [...featuredProducts]
-      .filter((p) => p.isFeatured)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [featuredProducts]);
-
-  const total = sorted.length;
-
-  /* -----------------------------------------------------
-     RESPONSIVE ITEMS PER PAGE
-  ----------------------------------------------------- */
-  const [itemsPerPage, setItemsPerPage] = useState(4);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 640) setItemsPerPage(1);
-      else if (window.innerWidth < 1024) setItemsPerPage(2);
-      else if (window.innerWidth < 1280) setItemsPerPage(3);
-      else setItemsPerPage(4);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const trueOffset = itemsPerPage;
-
-  /* -----------------------------------------------------
-     VIRTUAL SLIDES
-  ----------------------------------------------------- */
-  const virtualSlides = useMemo(() => {
-    return [
-      ...sorted.slice(-itemsPerPage),
-      ...sorted,
-      ...sorted.slice(0, itemsPerPage),
-    ];
-  }, [sorted, itemsPerPage]);
-
-  /* -----------------------------------------------------
-     INDEXES + MOBILE FIX
-  ----------------------------------------------------- */
-  const [index, setIndex] = useState(0);
-  const [virtualIndex, setVirtualIndex] = useState(null);
-  const [isAnimating, setIsAnimating] = useState(true);
-
-  useEffect(() => {
-    if (virtualIndex === null && itemsPerPage > 0 && total > 0) {
-      setVirtualIndex(itemsPerPage);
-      setIndex(0);
-    }
-  }, [itemsPerPage, total, virtualIndex]);
-
-  const normalizeIndex = useCallback(
-    (i) => {
-      if (i < 0) return total - 1;
-      if (i >= total) return 0;
-      return i;
-    },
-    [total]
+  const base = useMemo(
+    () => featuredProducts.filter((p) => p.isFeatured),
+    [featuredProducts]
   );
 
-  const next = useCallback(() => {
-    setIsAnimating(true);
-    setVirtualIndex((v) => v + 1);
-    setIndex((i) => normalizeIndex(i + 1));
-  }, [normalizeIndex]);
+  const baseCount = base.length;
+  const items = useMemo(() => [...base, ...base, ...base], [base]);
+  const middleOffset = baseCount * UNIT;
 
-  const prev = useCallback(() => {
-    setIsAnimating(true);
-    setVirtualIndex((v) => v - 1);
-    setIndex((i) => normalizeIndex(i - 1));
-  }, [normalizeIndex]);
+  /* -----------------------------------------------------
+     REFS / STATE
+  ----------------------------------------------------- */
+  const scrollerRef = useRef(null);
+  const autoplayRef = useRef(null);
+  const isJumping = useRef(false);
+  const isInteracting = useRef(false);
 
-  /* Silent warp */
+  const [active, setActive] = useState(0);
+
+  /* -----------------------------------------------------
+     INITIAL CENTER
+  ----------------------------------------------------- */
   useEffect(() => {
-    if (virtualIndex === null) return;
+    const el = scrollerRef.current;
+    if (!el) return;
 
-    if (virtualIndex <= 0) {
-      setTimeout(() => {
-        setIsAnimating(false);
-        setVirtualIndex(total);
-      }, 240);
-    } else if (virtualIndex >= total + trueOffset) {
-      setTimeout(() => {
-        setIsAnimating(false);
-        setVirtualIndex(trueOffset);
-      }, 240);
-    }
-  }, [virtualIndex, total, trueOffset]);
+    requestAnimationFrame(() => {
+      el.scrollLeft = middleOffset;
+    });
+  }, [middleOffset]);
+
+  /* -----------------------------------------------------
+     INFINITE LOOP + ACTIVE INDEX
+  ----------------------------------------------------- */
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      if (isJumping.current) return;
+
+      const x = el.scrollLeft;
+
+      if (x < UNIT) {
+        isJumping.current = true;
+        el.scrollLeft = x + middleOffset;
+        isJumping.current = false;
+        return;
+      }
+
+      if (x > middleOffset * 2) {
+        isJumping.current = true;
+        el.scrollLeft = x - middleOffset;
+        isJumping.current = false;
+        return;
+      }
+
+      const idx = Math.round(x / UNIT) % baseCount;
+      setActive(idx);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [baseCount, middleOffset]);
 
   /* -----------------------------------------------------
      AUTOPLAY
   ----------------------------------------------------- */
-  const autoplayRef = useRef(next);
-  const isHovering = useRef(false);
-
   useEffect(() => {
-    autoplayRef.current = next;
-  });
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (!isHovering.current) autoplayRef.current();
+    autoplayRef.current = setInterval(() => {
+      if (!isInteracting.current) {
+        scrollerRef.current?.scrollBy({
+          left: UNIT,
+          behavior: "smooth",
+        });
+      }
     }, AUTOPLAY_INTERVAL);
-    return () => clearInterval(id);
+
+    return () => clearInterval(autoplayRef.current);
   }, []);
 
   /* -----------------------------------------------------
-     SWIPE
+     DOT CLICK
   ----------------------------------------------------- */
-  const dragStartX = useRef(null);
-  const deltaX = useRef(0);
-
-  const onTouchStart = (e) => {
-    dragStartX.current = e.touches[0].clientX;
-    deltaX.current = 0;
-  };
-
-  const onTouchMove = (e) => {
-    deltaX.current = e.touches[0].clientX - dragStartX.current;
-  };
-
-  const onTouchEnd = () => {
-    if (Math.abs(deltaX.current) > SWIPE_THRESHOLD) {
-      deltaX.current > 0 ? prev() : next();
-    } else if (Math.abs(deltaX.current) > 30) {
-      deltaX.current > 0 ? prev() : next();
-    }
-    dragStartX.current = null;
+  const scrollToIndex = (i) => {
+    scrollerRef.current?.scrollTo({
+      left: middleOffset + i * UNIT,
+      behavior: "smooth",
+    });
   };
 
   /* -----------------------------------------------------
-     DEPTH (unchanged)
-  ----------------------------------------------------- */
-  const getDepth = useCallback(
-    (virtualIdx) => {
-      const realIdx = (virtualIdx - trueOffset + total) % total;
-      const dist = Math.abs(realIdx - index);
-      return Math.min(dist, 3);
-    },
-    [index, total, trueOffset]
-  );
-
-  /* -----------------------------------------------------
-     CLICK → CENTER FIX
-  ----------------------------------------------------- */
-  const scrollToItem = (virtualIdx) => {
-    const realIdx = (virtualIdx - trueOffset + total) % total;
-    const diff = realIdx - index;
-    const shortest =
-      Math.abs(diff) <= total / 2 ? diff : diff - Math.sign(diff) * total;
-
-    if (shortest === 0) return;
-
-    setIsAnimating(true);
-    setVirtualIndex((v) => v + shortest);
-    setIndex(normalizeIndex(index + shortest));
-  };
-
-  /* -----------------------------------------------------
-     ADD TO CART
+     CART
   ----------------------------------------------------- */
   const { addToCart } = useCartStore();
   const { user } = useUserStore();
 
   const handleAddToCart = (p, e) => {
     e.stopPropagation();
-    if (!user) {
-      return toast.error("Please log in to add products", { id: "login" });
-    }
+    if (!user) return toast.error("Please log in");
     addToCart(p);
   };
 
@@ -200,120 +126,109 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
      RENDER
   ----------------------------------------------------- */
   return (
-    <section className="py-16 select-none pt-16">
-      <div className="w-full">
-        <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
-          Featured
-        </h2>
+    <section className="relative py-20">
+      <h2 className="text-center text-5xl sm:text-6xl font-extrabold text-emerald-400 mb-10">
+        Featured
+      </h2>
 
+      <div className="relative max-w-7xl mx-auto px-4">
+        {/* SCROLLER */}
         <div
-          className="relative"
-          onMouseEnter={() => (isHovering.current = true)}
-          onMouseLeave={() => (isHovering.current = false)}
+          ref={scrollerRef}
+          onPointerDown={() => (isInteracting.current = true)}
+          onPointerUp={() => (isInteracting.current = false)}
+          onPointerLeave={() => (isInteracting.current = false)}
+          className="
+            flex gap-4 overflow-x-auto
+            snap-x snap-mandatory
+            scrollbar-none
+            [-webkit-overflow-scrolling:touch]
+            [-ms-overflow-style:none]
+            [scrollbar-width:none]
+          "
         >
-          <div className="relative w-full overflow-hidden">
-            <div
-              className="overflow-visible touch-pan-y"
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-            >
-              {virtualIndex !== null && (
-                <motion.div
-                  className="flex will-change-transform"
-                  animate={{ x: `-${(virtualIndex * 100) / itemsPerPage}%` }}
-                  transition={
-                    isAnimating
-                      ? { type: "spring", stiffness: 160, damping: 22 }
-                      : { duration: 0 }
-                  }
-                  style={{ transform: "translateZ(0)" }}
+          {items.map((product, i) => {
+            const realIndex = i % baseCount;
+            const dist = Math.min(
+              Math.abs(realIndex - active),
+              baseCount - Math.abs(realIndex - active)
+            );
+
+            const scale =
+              dist === 0 ? 1 :
+              dist === 1 ? 0.94 :
+              dist === 2 ? 0.88 : 0.82;
+
+            const opacity =
+              dist === 0 ? 1 :
+              dist === 1 ? 0.85 :
+              dist === 2 ? 0.7 : 0.55;
+
+            return (
+              <motion.div
+                key={`${product.id}-${i}`}
+                className="snap-center shrink-0"
+                style={{ width: CARD_WIDTH }}
+                animate={{ scale, opacity }}
+                transition={{ type: "spring", stiffness: 220, damping: 28 }}
+              >
+                <div
+                  className={`
+                    bg-white/10 backdrop-blur-sm
+                    rounded-2xl border border-emerald-500/30
+                    flex flex-col h-full
+                    ${dist === 0 ? centerGlow : ""}
+                  `}
                 >
-                  {virtualSlides.map((product, virtualIdx) => {
-                    const depth = getDepth(virtualIdx);
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-48 w-full object-cover rounded-t-2xl"
+                    loading="lazy"
+                  />
 
-                    return (
-                      <motion.div
-                        key={`${product.id}-${virtualIdx}`}
-                        onClick={() => scrollToItem(virtualIdx)}
-                        className={`
-                          w-full sm:w-1/2 lg:w-1/3 xl:w-1/4
-                          flex-shrink-0 px-2 transition-all duration-300 cursor-pointer
-                          ${
-                            depth === 0
-                              ? "scale-100 z-[5]"
-                              : depth === 1
-                              ? "scale-[0.94]"
-                              : depth === 2
-                              ? "scale-[0.88]"
-                              : "scale-[0.82]"
-                          }
-                        `}
+                  <div className="p-4 flex flex-col text-center h-full">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {product.name}
+                    </h3>
+
+                    <p className="text-sm text-emerald-200 line-clamp-2 mb-3">
+                      {product.description}
+                    </p>
+
+                    <div className="mt-auto flex flex-col items-center gap-3">
+                      <span className="text-2xl font-extrabold text-gray-200">
+                        £{product.price.toFixed()}
+                      </span>
+
+                      <button
+                        onClick={(e) => handleAddToCart(product, e)}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-full font-semibold"
                       >
-                        <div
-                          className={`
-                            bg-white bg-opacity-10 backdrop-blur-sm
-                            rounded-2xl shadow-lg border border-emerald-500/30
-                            flex flex-col h-full transition-all duration-300
-                            ${depthBlur[depth]}
-                            ${depth === 0 ? centerGlow : ""}
-                          `}
-                        >
-                          <div className="overflow-clip rounded-t-2xl">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              loading="lazy"
-                              className="w-full h-48 object-cover transition-transform duration-300 hover:scale-110"
-                            />
-                          </div>
+                        <FaCartShopping />
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
 
-                          <div className="p-4 flex flex-col h-full">
-                            <h3 className="text-lg font-semibold mb-2 text-white text-center">
-                              {product.name}
-                            </h3>
-
-                            <p className="text-sm text-emerald-200 mb-2 line-clamp-2 min-h-[2.6em] text-center">
-                              {product.description}
-                            </p>
-
-                            <div className="mt-auto flex flex-col items-center gap-3">
-                              <span className="text-2xl font-extrabold text-gray-200">
-                                £{product.price.toFixed()}
-                              </span>
-
-                              <button
-                                onClick={(e) => handleAddToCart(product, e)}
-                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white px-6 py-2 rounded-full font-semibold shadow-md"
-                              >
-                                <FaCartShopping className="w-5 h-5" />
-                                Add to Cart
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          {/* ARROWS */}
-          <button
-            onClick={prev}
-            className="absolute top-1/2 -left-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronLeft className="w-6 h-6 text-white" />
-          </button>
-
-          <button
-            onClick={next}
-            className="absolute top-1/2 -right-4 -translate-y-1/2 p-2 bg-emerald-600 hover:bg-emerald-500 rounded-full z-20"
-          >
-            <FaChevronRight className="w-6 h-6 text-white" />
-          </button>
+        {/* DOTS */}
+        <div className="flex justify-center gap-2 mt-6">
+          {base.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollToIndex(i)}
+              className={`h-2 rounded-full transition-all ${
+                i === active
+                  ? "w-6 bg-emerald-400"
+                  : "w-2 bg-emerald-400/40"
+              }`}
+            />
+          ))}
         </div>
       </div>
     </section>

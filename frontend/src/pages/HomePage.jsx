@@ -22,7 +22,8 @@ const HomePage = () => {
   }, [fetchFeaturedProducts]);
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800">
+      {/* PAGE CONTENT */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Header */}
         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
@@ -61,31 +62,31 @@ const HomePage = () => {
             <CategoryItem category={category} key={category.name} />
           ))}
         </motion.div>
+      </div>
 
-        {/* Featured */}
-        <div className="mt-14">
-          <AnimatePresence>
-            {loading ? (
-              <motion.div
-                className="h-96 flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <div className="animate-pulse w-full h-64 bg-emerald-800 rounded-lg" />
-              </motion.div>
-            ) : products.length > 0 ? (
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={fadeInUp}
-                transition={{ delay: 0.5 }}
-              >
-                <FeaturedProducts featuredProducts={products} />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
+      {/* FEATURED — intentionally OUTSIDE max-width */}
+      <div className="mt-20">
+        <AnimatePresence>
+          {loading ? (
+            <motion.div
+              className="h-96 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="animate-pulse w-full max-w-7xl h-64 bg-emerald-800 rounded-lg mx-auto" />
+            </motion.div>
+          ) : products.length > 0 ? (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeInUp}
+              transition={{ delay: 0.4 }}
+            >
+              <FeaturedProducts featuredProducts={products} />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );
