@@ -21,7 +21,7 @@ const centerGlow =
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* -----------------------------------------------------
-     DATA (NEW → OLD RESTORED)
+     DATA
   ----------------------------------------------------- */
   const base = useMemo(() => {
     return [...featuredProducts]
