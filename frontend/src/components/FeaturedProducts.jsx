@@ -14,13 +14,13 @@ const AUTOPLAY = 4500;
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------- DATA ---------- */
-  const base = useMemo(
-    () =>
-      [...featuredProducts]
-        .filter((p) => p.isFeatured)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
-    [featuredProducts]
-  );
+  const base = useMemo(() => {
+    return [...featuredProducts]
+      .filter((p) => p.isFeatured)
+      .sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+  }, [featuredProducts]);
 
   if (!base.length) return null;
 
@@ -133,8 +133,13 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
-            className="flex gap-4 overflow-x-scroll snap-x snap-mandatory overscroll-x-contain
-                       [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
+            className="
+              flex gap-4
+              overflow-x-scroll snap-x snap-mandatory overscroll-x-contain
+              pt-8
+              [-webkit-overflow-scrolling:touch]
+              [&::-webkit-scrollbar]:hidden
+            "
           >
             {items.map((p, i) => {
               const d = Math.min(
@@ -148,9 +153,9 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                   className="snap-center shrink-0"
                   style={{ width: CARD }}
                   animate={{
-                    scale: d === 0 ? 1 : 0.9,
-                    opacity: d === 0 ? 1 : 0.7,
-                    y: d === 0 ? -6 : 0,
+                    scale: d === 0 ? 1 : 0.92,
+                    opacity: d === 0 ? 1 : 0.75,
+                    y: d === 0 ? -4 : 0,
                   }}
                   transition={{
                     type: "spring",
@@ -159,11 +164,9 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                   }}
                 >
                   <div
-                    className={`
-                      flex h-full flex-col rounded-2xl border
+                    className={`flex h-full flex-col rounded-2xl border
                       border-emerald-500/30 bg-white/10 backdrop-blur-sm
-                      ${d === 0 ? "glow-emerald" : ""}
-                    `}
+                      ${d === 0 ? "glow-emerald" : ""}`}
                   >
                     <img
                       src={p.image}
@@ -207,7 +210,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                 key={i}
                 onClick={() => {
                   stopAutoplay();
-                  scroller.current.scrollTo({
+                  scroller.current?.scrollTo({
                     left: offset + i * STEP,
                     behavior: "smooth",
                   });
