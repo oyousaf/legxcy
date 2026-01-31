@@ -1,32 +1,57 @@
-# Legxcy | High-Performance Electric Bikes
+# ⚡ Legxcy | High-Performance Electric Bikes
 
-Discover high-performance electric bikes built for adventure and urban commuting.  
-Modern, eco-friendly, and packed with advanced features.
+A full-stack e-commerce platform for **high-performance electric bikes**, built to support both adventure riding and urban commuting.  
+Focused on clean UX, scalable architecture, and real-world commerce flows.
 
-## 🚀 Features
+---
 
-- Modern UI with React, Tailwind CSS, and Framer Motion
-- Supabase authentication and data storage
-- Stripe-powered payments
-- Responsive design
-- Advanced filtering and sorting
-- Admin dashboard 
-- Customer order history and profile management
+## 🚀 Capabilities
 
-## 🛠️ Tech Stack
+- End-to-end e-commerce flow (catalog → checkout → order history)
+- Secure authentication with role-based access
+- Stripe-powered payments and order processing
+- Admin dashboard for product and order management
+- Advanced filtering and sorting for large product catalogues
+- Motion-enhanced UI with performance-conscious animations
+- Fully responsive, mobile-first design
 
-- **Frontend:** React, Vite, Tailwind CSS, Zustand
-- **Backend:** Node.js, Express, Supabase (PostgreSQL)
-- **Payments:** Stripe
-- **Other:** Framer Motion, React Hot Toast
+---
 
-## 🖥️ Local Development
+## 🧩 Tech Stack
 
-Clone the repo and install dependencies:
+### Frontend
 
-```bash
-git clone https://github.com/your-username/legxcy.git
-cd legxcy
-npm install
-cd frontend && npm install
-cd ../backend && npm install
+- ⚛️ **React**
+- ⚡ **Vite**
+- 💨 **Tailwind CSS**
+- 🧠 **Zustand** (state management)
+- 🎬 **Framer Motion**
+
+### Backend
+
+- 🟢 **Node.js**
+- 🚂 **Express**
+- 🗄️ **Supabase (PostgreSQL)**
+
+### Payments & Utilities
+
+- 💳 **Stripe**
+- 🔔 **React Hot Toast**
+
+---
+
+## 🧠 Focus Areas
+
+- Practical full-stack architecture
+- Authentication and protected routes
+- Admin vs customer workflows
+- Payment lifecycle handling
+- Scalable data modelling
+- Clean separation between frontend and backend concerns
+
+---
+
+## 📌 Status
+
+💚 **Completed and intentionally archived.**  
+Built to explore and solidify full-stack e-commerce patterns, authentication, and payment integrations within a modern React ecosystem.
