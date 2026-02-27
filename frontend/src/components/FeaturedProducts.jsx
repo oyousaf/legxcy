@@ -7,6 +7,7 @@ import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
+/* ---------- CONFIG ---------- */
 const CARD = 320;
 const GAP = 16;
 const STEP = CARD + GAP;
@@ -18,13 +19,17 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     return [...featuredProducts]
       .filter((p) => p.isFeatured)
       .sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
   }, [featuredProducts]);
 
   if (!base.length) return null;
 
+  // Triple set for seamless loop
   const items = useMemo(() => [...base, ...base, ...base], [base]);
+
+  // Middle copy offset
   const offset = base.length * STEP;
 
   /* ---------- STATE ---------- */
@@ -40,9 +45,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   /* ---------- CENTER ON LOAD ---------- */
   useEffect(() => {
-    if (scroller.current) {
-      scroller.current.scrollLeft = offset;
-    }
+    const el = scroller.current;
+    if (el) el.scrollLeft = offset;
   }, [offset]);
 
   /* ---------- AUTOPLAY ---------- */
@@ -51,44 +55,61 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
     const id = setInterval(() => {
       const el = scroller.current;
-      if (!el) return;
+      if (!el || jumping.current) return;
 
       autoplaying.current = true;
-      el.scrollBy({ left: STEP, behavior: "smooth" });
 
-      requestAnimationFrame(() => {
-        autoplaying.current = false;
+      el.scrollBy({
+        left: STEP,
+        behavior: "smooth",
       });
+
+      // Release quickly so scroll handler works normally
+      setTimeout(() => {
+        autoplaying.current = false;
+      }, 150);
     }, AUTOPLAY);
 
     return () => clearInterval(id);
   }, [autoplay, prefersReducedMotion]);
 
-  /* ---------- SCROLL (INDEX + LOOP) ---------- */
+  /* ---------- SCROLL (INDEX + SEAMLESS LOOP) ---------- */
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
 
+    const leftBoundary = offset - STEP;
+    const rightBoundary = offset + offset;
+
     const onScroll = () => {
-      if (autoplaying.current || jumping.current) return;
+      if (jumping.current) return;
 
       const x = el.scrollLeft;
 
-      if (x < STEP) {
+      /* --- Seam jump (frame-safe) --- */
+      if (x <= leftBoundary) {
         jumping.current = true;
-        el.scrollLeft = x + offset;
-        jumping.current = false;
+        requestAnimationFrame(() => {
+          el.scrollLeft = x + offset;
+          jumping.current = false;
+        });
         return;
       }
 
-      if (x > offset * 2) {
+      if (x >= rightBoundary) {
         jumping.current = true;
-        el.scrollLeft = x - offset;
-        jumping.current = false;
+        requestAnimationFrame(() => {
+          el.scrollLeft = x - offset;
+          jumping.current = false;
+        });
         return;
       }
 
-      setActive(Math.round(x / STEP) % base.length);
+      /* --- Active index relative to middle copy --- */
+      const relative = el.scrollLeft - offset;
+      const index = Math.round(relative / STEP);
+
+      setActive((index + base.length) % base.length);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -133,19 +154,15 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
-            className="
-              flex gap-4
-              overflow-x-scroll snap-x snap-mandatory overscroll-x-contain
-              pt-8
+            className="flex gap-4 overflow-x-scroll snap-x snap-mandatory overscroll-x-contain pt-8
               [-webkit-overflow-scrolling:touch]
-              [&::-webkit-scrollbar]:hidden
-            "
+              [&::-webkit-scrollbar]:hidden"
           >
             {items.map((p, i) => {
-              const d = Math.min(
-                Math.abs((i % base.length) - active),
-                base.length
-              );
+              /* ---------- Circular distance (stable animation) ---------- */
+              const index = i % base.length;
+              const diff = Math.abs(index - active);
+              const d = Math.min(diff, base.length - diff);
 
               return (
                 <motion.div
@@ -164,8 +181,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                   }}
                 >
                   <div
-                    className={`flex h-full flex-col rounded-2xl border
-                      border-emerald-500/30 bg-white/10 backdrop-blur-sm
+                    className={`flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-white/10 backdrop-blur-sm
                       ${d === 0 ? "glow-emerald" : ""}`}
                   >
                     <img
@@ -203,6 +219,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           </div>
         </div>
 
+        {/* ---------- DOTS + PLAY ---------- */}
         <div className="mt-6 flex items-center justify-center gap-4">
           <div className="flex gap-2">
             {base.map((_, i) => (
