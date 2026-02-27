@@ -9,8 +9,7 @@ import toast from "react-hot-toast";
 const CARD = 320;
 const GAP = 16;
 const STEP = CARD + GAP;
-const AUTOPLAY = 4500;
-const SCROLL_DURATION = 600; // matches smooth scroll time
+const AUTOPLAY = 3000;
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------- DATA ---------- */
