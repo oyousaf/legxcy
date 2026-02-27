@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 const CARD = 320;
 const GAP = 16;
 const STEP = CARD + GAP;
-const AUTOPLAY = 3000;
+const AUTOPLAY = 5000;
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   /* ---------- DATA ---------- */
