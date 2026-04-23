@@ -22,7 +22,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       );
   }, [featuredProducts]);
 
-  if (!base.length) return null;
+  if (!base.length) return null;skrrr
 
   const items = useMemo(() => [...base, ...base, ...base], [base]);
   const offset = base.length * STEP;
