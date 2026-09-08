@@ -17,19 +17,20 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       [...featuredProducts]
         .filter((p) => p.isFeatured)
         .sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         ),
-    [featuredProducts]
+    [featuredProducts],
   );
 
   const prefersReducedMotion = useReducedMotion();
   const [autoplayPlugin] = useState(() =>
-    Autoplay({ delay: AUTOPLAY_DELAY, stopOnInteraction: false })
+    Autoplay({ delay: AUTOPLAY_DELAY, stopOnInteraction: false }),
   );
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "center", skipSnaps: false },
-    prefersReducedMotion ? [] : [autoplayPlugin]
+    prefersReducedMotion ? [] : [autoplayPlugin],
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -83,7 +84,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       emblaApi?.plugins()?.autoplay?.stop();
       emblaApi?.scrollTo(index);
     },
-    [emblaApi]
+    [emblaApi],
   );
 
   /* ---------- CART ---------- */
@@ -111,59 +112,63 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             {base.map((p, index) => {
               const d = Math.min(
                 Math.abs(index - selectedIndex),
-                base.length - Math.abs(index - selectedIndex)
+                base.length - Math.abs(index - selectedIndex),
               );
 
               return (
-                <motion.div
-                  key={getId(p)}
-                  className="w-72 shrink-0 sm:w-80"
-                  animate={{
-                    scale: d === 0 ? 1 : 0.92,
-                    opacity: d === 0 ? 1 : 0.75,
-                    y: d === 0 ? -4 : 0,
-                  }}
-                  transition={{ type: "spring", stiffness: 220, damping: 28 }}
-                >
-                  <div
-                    className={`flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-white/10 backdrop-blur-sm
-                      ${d === 0 ? "glow-emerald" : ""}`}
+                // Embla controls this element's transform (for loop
+                // repositioning) - it must not share a transform with the
+                // Framer Motion element below, or the two will fight and
+                // Embla's slide placement breaks on the loop wrap.
+                <div key={getId(p)} className="w-72 shrink-0 sm:w-80">
+                  <motion.div
+                    animate={{
+                      scale: d === 0 ? 1 : 0.92,
+                      opacity: d === 0 ? 1 : 0.75,
+                      y: d === 0 ? -4 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 220, damping: 28 }}
                   >
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      loading="eager"
-                      decoding="async"
-                      width={320}
-                      height={192}
-                      className="h-48 w-full rounded-t-2xl object-cover"
-                    />
+                    <div
+                      className={`flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-white/10 backdrop-blur-sm
+                        ${d === 0 ? "glow-emerald" : ""}`}
+                    >
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        loading="eager"
+                        decoding="async"
+                        width={320}
+                        height={192}
+                        className="h-48 w-full rounded-t-2xl object-cover"
+                      />
 
-                    <div className="flex h-full flex-col p-4 text-center">
-                      <h3 className="mb-2 text-lg font-semibold text-white">
-                        {p.name}
-                      </h3>
+                      <div className="flex h-full flex-col p-4 text-center">
+                        <h3 className="mb-2 text-lg font-semibold text-white">
+                          {p.name}
+                        </h3>
 
-                      <p className="mb-3 line-clamp-2 text-sm text-emerald-200">
-                        {p.description}
-                      </p>
+                        <p className="mb-3 line-clamp-2 text-sm text-emerald-200">
+                          {p.description}
+                        </p>
 
-                      <div className="mt-auto flex flex-col items-center gap-3">
-                        <span className="text-2xl font-extrabold text-gray-200">
-                          £{p.price.toFixed()}
-                        </span>
+                        <div className="mt-auto flex flex-col items-center gap-3">
+                          <span className="text-2xl font-extrabold text-gray-200">
+                            £{p.price.toFixed()}
+                          </span>
 
-                        <button
-                          type="button"
-                          onClick={(e) => add(p, e)}
-                          className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
-                        >
-                          <FaCartShopping /> Add to Cart
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => add(p, e)}
+                            className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
+                          >
+                            <FaCartShopping /> Add to Cart
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </div>
               );
             })}
           </div>
