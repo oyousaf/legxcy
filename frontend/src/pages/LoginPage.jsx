@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import { FaLock, FaArrowRight } from "react-icons/fa6";
 import { LuLogIn, LuMail, LuLoader } from "react-icons/lu";
@@ -18,7 +18,7 @@ const LoginPage = () => {
 
   return (
     <motion.div
-      className="flex flex-col min-h-screen justify-center items-center bg-gradient-to-br from-emerald-900 via-gray-900 to-emerald-950"
+      className="flex flex-col min-h-screen justify-center items-center bg-linear-to-br from-emerald-900 via-gray-900 to-emerald-950"
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -36,7 +36,7 @@ const LoginPage = () => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
       >
-        <h1 className="text-3xl font-bold text-center text-emerald-400 mb-2">
+        <h1 className="text-3xl font-bold text-center text-emerald-400 mb-2 font-display">
           Welcome Back
         </h1>
         <p className="text-center text-emerald-200 mb-8 text-base">
@@ -58,7 +58,7 @@ const LoginPage = () => {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 rounded-xl bg-emerald-900 border border-emerald-800 text-white placeholder-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 outline-none transition"
+              className="w-full pl-10 pr-3 py-2 rounded-xl bg-emerald-900 border border-emerald-800 text-white placeholder-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 outline-hidden transition"
               placeholder="Email"
             />
           </div>
@@ -77,14 +77,14 @@ const LoginPage = () => {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 rounded-xl bg-emerald-900 border border-emerald-800 text-white placeholder-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 outline-none transition"
+              className="w-full pl-10 pr-3 py-2 rounded-xl bg-emerald-900 border border-emerald-800 text-white placeholder-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 outline-hidden transition"
               placeholder="Password"
             />
           </div>
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full flex justify-center items-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow text-white font-semibold text-lg transition disabled:opacity-60"
+            className="w-full flex justify-center items-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm text-white font-semibold text-lg transition disabled:opacity-60"
             disabled={loading}
           >
             {loading ? (

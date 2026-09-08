@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { useUserStore } from "../stores/useUserStore";
 import { supabase } from "../lib/supabase";
 import { FiX, FiEdit2, FiSave } from "react-icons/fi";
@@ -86,7 +86,7 @@ export default function ProfileModal({ open, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center"
+        className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center"
         style={{
           position: "fixed",
           top: 0,
@@ -108,7 +108,7 @@ export default function ProfileModal({ open, onClose }) {
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 z-10 p-3 text-white bg-emerald-900 hover:bg-emerald-700 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            className="absolute top-2 right-2 z-10 p-3 text-white bg-emerald-900 hover:bg-emerald-700 rounded-full shadow-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-400"
             aria-label="Close profile modal"
             tabIndex={0}
           >

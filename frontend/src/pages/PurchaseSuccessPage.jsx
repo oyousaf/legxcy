@@ -115,7 +115,7 @@ const PurchaseSuccessPage = () => {
           <div className="flex justify-center">
             <FaCheckCircle className="text-emerald-400 w-16 h-16 mb-4" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-center text-emerald-400 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center text-emerald-400 mb-2 font-display">
             Purchase Successful!
           </h1>
 

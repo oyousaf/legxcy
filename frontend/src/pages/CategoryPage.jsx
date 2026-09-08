@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useProductStore } from "../stores/useProductStore";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import ProductCard from "../components/ProductCard";
 import Seo from "../components/Seo";
 import { LuMoveRight } from "react-icons/lu";
@@ -129,7 +129,7 @@ const CategoryPage = () => {
   const sortedProducts = getSortedProducts(products, sort);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
+    <div className="min-h-screen bg-linear-to-b from-emerald-900/60 to-gray-900/95">
       <Seo
         title={heading}
         description={
@@ -139,7 +139,7 @@ const CategoryPage = () => {
         path={`/category/${category}`}
       />
 
-      <div className="relative max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <div className="relative max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 
         {/* Heading */}
         <AnimatePresence mode="wait">
@@ -150,7 +150,7 @@ const CategoryPage = () => {
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.35, ease: "easeInOut" }}
           >
-            <h1 className="text-center text-4xl sm:text-5xl font-bold text-white mb-1">
+            <h1 className="text-center text-4xl sm:text-5xl font-bold text-white mb-1 font-display">
               {heading}
             </h1>
             <p className="text-center text-emerald-300 mb-10 text-lg max-w-2xl mx-auto">
@@ -183,7 +183,7 @@ const CategoryPage = () => {
                       sortOptions.findIndex((o) => o.value === sort) || 0
                     );
                   }}
-                  className="flex items-center justify-between w-full rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="flex items-center justify-between w-full rounded-lg bg-emerald-950 text-emerald-100 border border-emerald-600 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-400"
                 >
                   {sortOptions.find((o) => o.value === sort)?.label}
                   <motion.span
@@ -232,7 +232,7 @@ const CategoryPage = () => {
               <motion.button
                 key={otherCategory}
                 onClick={() => navigate(`/category/${otherCategory}`)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 text-emerald-100 hover:bg-emerald-600 font-semibold shadow transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-700 text-emerald-100 hover:bg-emerald-600 font-semibold shadow-sm transition-all"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}

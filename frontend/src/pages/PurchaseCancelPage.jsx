@@ -1,6 +1,6 @@
 import { FiXCircle } from "react-icons/fi";
 import { FaArrowLeft } from "react-icons/fa6";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import Seo from "../components/Seo";
 
@@ -23,7 +23,7 @@ const PurchaseCancelPage = () => {
           <div className="flex justify-center">
             <FiXCircle className="text-red-500 w-16 h-16 mb-4" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-center text-red-500 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center text-red-500 mb-2 font-display">
             Purchase Cancelled
           </h1>
           <p className="text-gray-300 text-center mb-6">

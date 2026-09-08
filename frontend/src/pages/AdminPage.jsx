@@ -2,7 +2,7 @@ import { MdBarChart } from "react-icons/md";
 import { FaPlusCircle } from "react-icons/fa";
 import { LuShoppingBasket } from "react-icons/lu";
 import { useEffect, useState, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import AnalyticsTab from "../components/AnalyticsTab";
@@ -31,7 +31,7 @@ function TabErrorBoundary({ children }) {
         <p className="font-bold">Something went wrong!</p>
         <p className="text-sm">{err.message}</p>
         <button
-          className="mt-4 px-4 py-2 bg-emerald-600 rounded"
+          className="mt-4 px-4 py-2 bg-emerald-600 rounded-sm"
           onClick={() => setError(null)}
         >
           Try again
@@ -116,7 +116,7 @@ const AdminPage = () => {
 
         <div className="relative z-10 container mx-auto px-4 py-16">
           <motion.h1
-            className="text-4xl font-bold mb-8 text-emerald-400 text-center"
+            className="text-4xl font-bold mb-8 text-emerald-400 text-center font-display"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -138,7 +138,7 @@ const AdminPage = () => {
                 onClick={() => setActiveTab(tab.id)}
                 aria-selected={activeTab === tab.id}
                 tabIndex={0}
-                className={`flex items-center px-4 py-2 mx-2 rounded-md transition-colors duration-200 outline-none focus:ring-2 focus:ring-emerald-400 ${
+                className={`flex items-center px-4 py-2 mx-2 rounded-md transition-colors duration-200 outline-hidden focus:ring-2 focus:ring-emerald-400 ${
                   activeTab === tab.id
                     ? "bg-emerald-600 text-white"
                     : "bg-emerald-700 text-gray-300 hover:bg-emerald-600"

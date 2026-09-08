@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { GoTrash } from "react-icons/go";
 import { FaStar } from "react-icons/fa6";
 import { FiEdit2, FiSave, FiX } from "react-icons/fi";
@@ -51,13 +51,13 @@ function ConfirmModal({ open, onConfirm, onCancel, productName }) {
         <div className="flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded bg-gray-800 text-gray-200 hover:bg-gray-700"
+            className="px-4 py-2 rounded-sm bg-gray-800 text-gray-200 hover:bg-gray-700"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 font-semibold"
+            className="px-4 py-2 rounded-sm bg-red-600 text-white hover:bg-red-700 font-semibold"
           >
             Confirm
           </button>
@@ -465,7 +465,7 @@ const ProductsList = () => {
                         >
                           <input
                             name="name"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
+                            className="w-full bg-emerald-800 rounded-sm p-2 text-white border border-emerald-700"
                             value={editValues.name}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -476,7 +476,7 @@ const ProductsList = () => {
                           />
 
                           <select
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
+                            className="w-full bg-emerald-800 rounded-sm p-2 text-white border border-emerald-700"
                             value={editValues.category}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -492,7 +492,7 @@ const ProductsList = () => {
 
                           <input
                             type="number"
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700"
+                            className="w-full bg-emerald-800 rounded-sm p-2 text-white border border-emerald-700"
                             value={editValues.price}
                             onChange={(e) =>
                               setEditValues((ev) => ({
@@ -503,7 +503,7 @@ const ProductsList = () => {
                           />
 
                           <textarea
-                            className="w-full bg-emerald-800 rounded p-2 text-white border border-emerald-700 min-h-[60px]"
+                            className="w-full bg-emerald-800 rounded-sm p-2 text-white border border-emerald-700 min-h-[60px]"
                             value={editValues.description}
                             onChange={(e) =>
                               setEditValues((ev) => ({

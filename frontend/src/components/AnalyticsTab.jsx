@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import PropTypes from "prop-types";
 import { useEffect, useState } from "react";
 import { FaCartShopping } from "react-icons/fa6";
@@ -221,7 +221,7 @@ export default AnalyticsTab;
 // Emerald Card Component
 const AnalyticsCard = ({ title, value, icon: Icon, color }) => (
   <motion.div
-    className={`relative bg-gradient-to-br ${color} rounded-xl p-6 shadow-xl overflow-hidden border border-emerald-800`}
+    className={`relative bg-linear-to-br ${color} rounded-xl p-6 shadow-xl overflow-hidden border border-emerald-800`}
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}

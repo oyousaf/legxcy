@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { FaCartShopping, FaPlay, FaPause } from "react-icons/fa6";
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuPause,
+  LuPlay,
+  LuShoppingCart,
+} from "react-icons/lu";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
@@ -29,27 +35,33 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   );
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true, align: "center", skipSnaps: false },
+    { loop: true, align: "start", dragFree: true },
     prefersReducedMotion ? [] : [autoplayPlugin],
   );
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(!prefersReducedMotion);
+  const [progress, setProgress] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
-  const onSelect = useCallback((api) => {
-    setSelectedIndex(api.selectedScrollSnap());
+  const onUpdate = useCallback((api) => {
+    setProgress(Math.min(1, Math.max(0, api.scrollProgress())));
+    setCanScrollPrev(api.canScrollPrev());
+    setCanScrollNext(api.canScrollNext());
   }, []);
 
   useEffect(() => {
     if (!emblaApi) return;
-    onSelect(emblaApi);
-    emblaApi.on("select", onSelect);
-    emblaApi.on("reInit", onSelect);
+    onUpdate(emblaApi);
+    emblaApi.on("scroll", onUpdate);
+    emblaApi.on("reInit", onUpdate);
+    emblaApi.on("select", onUpdate);
     return () => {
-      emblaApi.off("select", onSelect);
-      emblaApi.off("reInit", onSelect);
+      emblaApi.off("scroll", onUpdate);
+      emblaApi.off("reInit", onUpdate);
+      emblaApi.off("select", onUpdate);
     };
-  }, [emblaApi, onSelect]);
+  }, [emblaApi, onUpdate]);
 
   // Slides can change after mount (e.g. the async product fetch resolving
   // after Embla already measured the DOM) - tell Embla to recompute.
@@ -79,13 +91,15 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     else plugin.play();
   }, [emblaApi]);
 
-  const scrollTo = useCallback(
-    (index) => {
-      emblaApi?.plugins()?.autoplay?.stop();
-      emblaApi?.scrollTo(index);
-    },
-    [emblaApi],
-  );
+  const scrollPrev = useCallback(() => {
+    emblaApi?.plugins()?.autoplay?.stop();
+    emblaApi?.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    emblaApi?.plugins()?.autoplay?.stop();
+    emblaApi?.scrollNext();
+  }, [emblaApi]);
 
   /* ---------- CART ---------- */
   const { addToCart } = useCartStore();
@@ -101,109 +115,114 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   if (!base.length) return null;
 
   return (
-    <section className="py-20 overflow-x-hidden">
-      <h2 className="mb-10 text-center text-5xl font-extrabold text-emerald-400">
-        Featured
-      </h2>
-
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-4 pt-8">
-            {base.map((p, index) => {
-              const d = Math.min(
-                Math.abs(index - selectedIndex),
-                base.length - Math.abs(index - selectedIndex),
-              );
-
-              return (
-                // Embla controls this element's transform (for loop
-                // repositioning) - it must not share a transform with the
-                // Framer Motion element below, or the two will fight and
-                // Embla's slide placement breaks on the loop wrap.
-                <div key={getId(p)} className="w-72 shrink-0 sm:w-80">
-                  <motion.div
-                    animate={{
-                      scale: d === 0 ? 1 : 0.92,
-                      opacity: d === 0 ? 1 : 0.75,
-                      y: d === 0 ? -4 : 0,
-                    }}
-                    transition={{ type: "spring", stiffness: 220, damping: 28 }}
-                  >
-                    <div
-                      className={`flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-white/10 backdrop-blur-sm
-                        ${d === 0 ? "glow-emerald" : ""}`}
-                    >
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        loading="eager"
-                        decoding="async"
-                        width={320}
-                        height={192}
-                        className="h-48 w-full rounded-t-2xl object-cover"
-                      />
-
-                      <div className="flex h-full flex-col p-4 text-center">
-                        <h3 className="mb-2 text-lg font-semibold text-white">
-                          {p.name}
-                        </h3>
-
-                        <p className="mb-3 line-clamp-2 text-sm text-emerald-200">
-                          {p.description}
-                        </p>
-
-                        <div className="mt-auto flex flex-col items-center gap-3">
-                          <span className="text-2xl font-extrabold text-gray-200">
-                            £{p.price.toFixed()}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={(e) => add(p, e)}
-                            className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
-                          >
-                            <FaCartShopping /> Add to Cart
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
+    <section className="py-24">
+      <div className="mx-auto mb-8 flex max-w-7xl items-end justify-between px-4 sm:px-6 lg:px-8">
+        <div>
+          <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-emerald-400 uppercase">
+            Handpicked
+          </p>
+          <h2 className="font-display text-4xl font-bold text-white sm:text-5xl">
+            Featured
+          </h2>
         </div>
 
-        {/* DOTS + PLAY/PAUSE */}
-        <div className="mt-6 flex items-center justify-center gap-4">
-          <div className="flex gap-2">
-            {base.map((p, i) => (
-              <motion.button
-                key={getId(p)}
-                type="button"
-                onClick={() => scrollTo(i)}
-                aria-label={`Go to slide ${i + 1}`}
-                aria-current={i === selectedIndex}
-                animate={{
-                  width: i === selectedIndex ? 24 : 8,
-                  opacity: i === selectedIndex ? 1 : 0.4,
-                }}
-                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className="h-2 rounded-full bg-emerald-400"
-              />
-            ))}
-          </div>
-
+        <div className="hidden items-center gap-2 sm:flex">
+          <button
+            type="button"
+            onClick={scrollPrev}
+            disabled={!canScrollPrev}
+            aria-label="Previous product"
+            className="rounded-full border border-white/15 p-2.5 text-white/80 transition hover:border-emerald-400 hover:text-emerald-400 disabled:pointer-events-none disabled:opacity-30"
+          >
+            <LuChevronLeft size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={scrollNext}
+            disabled={!canScrollNext}
+            aria-label="Next product"
+            className="rounded-full border border-white/15 p-2.5 text-white/80 transition hover:border-emerald-400 hover:text-emerald-400 disabled:pointer-events-none disabled:opacity-30"
+          >
+            <LuChevronRight size={20} />
+          </button>
           {!prefersReducedMotion && (
-            <motion.button
+            <button
               type="button"
               onClick={toggleAutoplay}
-              className="rounded-full bg-emerald-700/60 p-2 text-white"
               aria-label={isPlaying ? "Pause autoplay" : "Resume autoplay"}
+              className="ml-1 rounded-full border border-white/15 p-2.5 text-white/80 transition hover:border-emerald-400 hover:text-emerald-400"
             >
-              {isPlaying ? <FaPause size={14} /> : <FaPlay size={14} />}
-            </motion.button>
+              {isPlaying ? <LuPause size={18} /> : <LuPlay size={18} />}
+            </button>
           )}
+        </div>
+      </div>
+
+      <div
+        className="overflow-hidden mask-[linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)]"
+        ref={emblaRef}
+      >
+        <div className="flex gap-5 px-4 sm:px-6 lg:px-8">
+          {base.map((p) => (
+            // Embla controls this element's transform (for loop
+            // repositioning) - it must not share a transform with the
+            // Motion element below, or the two will fight and Embla's
+            // slide placement breaks on the loop wrap.
+            <div key={getId(p)} className="w-64 shrink-0 sm:w-80">
+              <motion.div
+                className="group h-full overflow-hidden rounded-3xl border border-white/10 bg-emerald-950/60"
+                whileHover={prefersReducedMotion ? undefined : { y: -6 }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              >
+                <div className="aspect-4/3 overflow-hidden">
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    loading="eager"
+                    decoding="async"
+                    width={320}
+                    height={240}
+                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                  />
+                </div>
+
+                <div className="flex flex-col p-5">
+                  <h3 className="font-display mb-1 text-lg font-semibold text-white">
+                    {p.name}
+                  </h3>
+
+                  <p className="mb-4 line-clamp-2 text-sm text-emerald-200/70">
+                    {p.description}
+                  </p>
+
+                  <div className="mt-auto flex items-center justify-between">
+                    <span className="text-xl font-bold text-emerald-400">
+                      £{p.price.toFixed()}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => add(p, e)}
+                      aria-label={`Add ${p.name} to cart`}
+                      className="rounded-full bg-emerald-600 p-2.5 text-white transition hover:bg-emerald-500"
+                    >
+                      <LuShoppingCart size={18} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            className="h-full rounded-full bg-emerald-400"
+            animate={{ width: `${progress * 100}%` }}
+            transition={{ type: "tween", duration: 0.15 }}
+          />
         </div>
       </div>
     </section>

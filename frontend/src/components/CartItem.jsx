@@ -7,7 +7,7 @@ import { useUserStore } from "../stores/useUserStore";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import ConfirmModal from "./ConfirmModal";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const CartItem = ({ item }) => {
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +35,7 @@ const CartItem = ({ item }) => {
 
   return (
     <motion.div
-      className="relative rounded-lg border p-4 shadow-sm border-emerald-700 bg-emerald-800 md:p-6"
+      className="relative rounded-lg border p-4 shadow-xs border-emerald-700 bg-emerald-800 md:p-6"
       initial={{ opacity: 0, y: 24, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
       exit={{ opacity: 0, scale: 0.97, filter: "blur(8px)" }}
@@ -45,7 +45,7 @@ const CartItem = ({ item }) => {
       <div className="space-y-4 md:flex md:items-center md:justify-between md:gap-6 md:space-y-0">
         <div className="shrink-0 md:order-1">
           <img
-            className="h-20 md:h-32 rounded object-cover"
+            className="h-20 md:h-32 rounded-sm object-cover"
             src={item.image}
             alt={item.name}
             loading="lazy"
@@ -62,7 +62,7 @@ const CartItem = ({ item }) => {
               type="button"
               aria-label={`Decrease quantity of ${item.name}`}
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border
-                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-none focus:ring-2
+                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-hidden focus:ring-2
                 focus:ring-emerald-500"
               onClick={() =>
                 requireAuth(() => updateQuantity(item.id, item.quantity - 1))
@@ -75,7 +75,7 @@ const CartItem = ({ item }) => {
               type="button"
               aria-label={`Increase quantity of ${item.name}`}
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border
-                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-none
+                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-hidden
                 focus:ring-2 focus:ring-emerald-500"
               onClick={() =>
                 requireAuth(() => updateQuantity(item.id, item.quantity + 1))

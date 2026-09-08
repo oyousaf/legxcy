@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import { Link, useNavigate } from "react-router-dom";
@@ -88,7 +88,7 @@ const OrderSummary = () => {
 
   return (
     <motion.div
-      className="space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-sm sm:p-6"
+      className="space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-xs sm:p-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -135,7 +135,7 @@ const OrderSummary = () => {
         </div>
 
         <motion.button
-          className="flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+          className="flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-hidden focus:ring-4 focus:ring-emerald-300"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handlePayment}

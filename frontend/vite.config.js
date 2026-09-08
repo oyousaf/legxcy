@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     proxy: {
       "/api": {
@@ -16,8 +17,10 @@ export default defineConfig({
       output: {
         manualChunks: {
           "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-motion": ["framer-motion"],
+          "vendor-motion": ["motion"],
           "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-embla": ["embla-carousel-react", "embla-carousel-autoplay"],
+          "vendor-helmet": ["react-helmet-async"],
         },
       },
     },

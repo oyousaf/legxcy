@@ -29,7 +29,7 @@ const ProductCard = ({ product }) => {
           width={320}
           height={224}
         />
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
+        <div className="absolute inset-0 bg-black/20" />
       </div>
 
       <div className="flex flex-col items-center mt-4 px-6 pb-6 w-full">
@@ -46,7 +46,7 @@ const ProductCard = ({ product }) => {
         </span>
         <button
           type="button"
-          className="flex items-center justify-center rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
+          className="flex items-center justify-center rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-hidden focus:ring-4 focus:ring-emerald-300"
           onClick={handleAddToCart}
         >
           <FaCartShopping size={22} className="mr-2" />

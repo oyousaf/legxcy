@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { FaPlusCircle } from "react-icons/fa";
 import { IoMdCloudUpload } from "react-icons/io";
 import { LuLoader } from "react-icons/lu";
@@ -94,7 +94,7 @@ const AddProductForm = () => {
             value={newProduct.name}
             onChange={handleChange}
             autoComplete="off"
-            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-xs py-2 px-3 text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             required
             disabled={loading}
           />
@@ -109,7 +109,7 @@ const AddProductForm = () => {
             onChange={handleChange}
             rows="3"
             autoComplete="off"
-            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-xs py-2 px-3 text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             required
             disabled={loading}
           />
@@ -126,7 +126,7 @@ const AddProductForm = () => {
             step="0.01"
             min="0"
             autoComplete="off"
-            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-xs py-2 px-3 text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             required
             disabled={loading}
           />
@@ -140,7 +140,7 @@ const AddProductForm = () => {
             value={newProduct.category}
             onChange={handleChange}
             autoComplete="off"
-            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            className="mt-1 block w-full bg-emerald-700 border border-emerald-600 rounded-md shadow-xs py-2 px-3 text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             required
             disabled={loading}
           >
@@ -166,7 +166,7 @@ const AddProductForm = () => {
           />
           <label
             htmlFor="product-image"
-            className="cursor-pointer bg-emerald-700 py-2 px-3 border border-emerald-600 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-300 hover:text-white hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            className="cursor-pointer bg-emerald-700 py-2 px-3 border border-emerald-600 rounded-md shadow-xs text-sm leading-4 font-medium text-gray-300 hover:text-white hover:bg-emerald-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
           >
             <IoMdCloudUpload className="h-5 w-5 inline-block mr-2" />
             Upload image
@@ -180,7 +180,7 @@ const AddProductForm = () => {
 
         <button
           type="submit"
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-300 hover:text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-gray-300 hover:text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
           disabled={loading}
         >
           {loading ? (

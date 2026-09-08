@@ -1,6 +1,6 @@
 import logo from "/logo.png";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { FaUserPlus, FaCartShopping, FaLock } from "react-icons/fa6";
 import { LuLogIn, LuLogOut } from "react-icons/lu";
 import { GoHomeFill } from "react-icons/go";
@@ -9,7 +9,7 @@ import { useCartStore } from "../stores/useCartStore";
 import { useState } from "react";
 import ProfileModal from "./ProfileModal";
 
-const MotionLink = motion(Link);
+const MotionLink = motion.create(Link);
 const MotionButton = motion.button;
 
 const hoverTap = {
@@ -51,7 +51,7 @@ export default function Navbar() {
             <MotionLink
               to="/"
               {...hoverTap}
-              className="rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+              className="rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400"
               aria-label="Home"
             >
               <GoHomeFill size={20} />
@@ -61,7 +61,7 @@ export default function Navbar() {
               <MotionLink
                 to="/cart"
                 {...hoverTap}
-                className="relative rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="relative rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400"
                 aria-label="Cart"
               >
                 <FaCartShopping size={20} />
@@ -104,7 +104,7 @@ export default function Navbar() {
                     hidden sm:block rounded-md px-3 py-1.5
                     text-sm text-white/90
                     hover:underline
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400
+                    focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400
                   "
                 >
                   {profile?.name ?? user.email}
