@@ -7,6 +7,8 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
+import ScrollToTop from "./components/ScrollToTop";
+import BackToTopButton from "./components/BackToTopButton";
 
 import HomePage from "./pages/HomePage";
 
@@ -43,6 +45,7 @@ function App() {
 
       {/* APP CONTENT */}
       <div className="relative z-10 flex min-h-screen flex-col pt-20">
+        <ScrollToTop />
         <Navbar />
 
         <main className="flex-1">
@@ -104,6 +107,7 @@ function App() {
         <Footer />
       </div>
 
+      <BackToTopButton />
       <Toaster />
       <Analytics />
     </div>

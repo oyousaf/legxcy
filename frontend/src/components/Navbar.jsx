@@ -1,6 +1,6 @@
 import logo from "/logo.png";
-import { Link } from "react-router-dom";
-import { motion } from "motion/react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
 import { FaUserPlus, FaCartShopping, FaLock } from "react-icons/fa6";
 import { LuLogIn, LuLogOut } from "react-icons/lu";
 import { GoHomeFill } from "react-icons/go";
@@ -22,6 +22,20 @@ export default function Navbar() {
   const isAdmin = profile?.role === "admin";
   const { cart } = useCartStore();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const location = useLocation();
+  const prefersReducedMotion = useReducedMotion();
+
+  // Clicking "Home" while already on "/" doesn't trigger a route change,
+  // so the app-wide scroll-to-top-on-navigate effect never fires - scroll
+  // up manually in that case.
+  const handleHomeClick = () => {
+    if (location.pathname === "/") {
+      window.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    }
+  };
 
   return (
     <header
@@ -35,7 +49,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* LOGO */}
-          <Link to="/" className="flex items-center">
+          <Link to="/" onClick={handleHomeClick} className="flex items-center">
             <img
               src={logo}
               alt="Legxcy"
@@ -50,6 +64,7 @@ export default function Navbar() {
           <nav className="flex items-center gap-3">
             <MotionLink
               to="/"
+              onClick={handleHomeClick}
               {...hoverTap}
               className="rounded-md p-2 text-white/80 hover:text-emerald-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-400"
               aria-label="Home"

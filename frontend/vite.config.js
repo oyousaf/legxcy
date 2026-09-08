@@ -21,6 +21,7 @@ export default defineConfig({
           "vendor-supabase": ["@supabase/supabase-js"],
           "vendor-embla": ["embla-carousel-react", "embla-carousel-autoplay"],
           "vendor-helmet": ["react-helmet-async"],
+          "vendor-icons": ["react-icons/lu", "react-icons/fa6", "react-icons/fa", "react-icons/fi", "react-icons/go", "react-icons/md", "react-icons/pi"],
         },
       },
     },

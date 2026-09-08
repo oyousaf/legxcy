@@ -37,7 +37,7 @@ const ProductCard = ({ product }) => {
           {product.name}
         </h5>
         {product.description && (
-          <p className="mt-2 mb-3 text-sm text-emerald-300 text-center min-h-[44px]">
+          <p className="mt-2 mb-3 text-sm text-emerald-300 text-center min-h-11">
             {product.description}
           </p>
         )}

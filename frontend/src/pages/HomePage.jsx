@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { motion } from "motion/react";
+import { useCallback, useEffect } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { LuArrowRight, LuZap } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import CategoryItem from "../components/CategoryItem";
@@ -31,6 +31,19 @@ export default function HomePage() {
   const heroProduct = products
     .filter((p) => p.isFeatured)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+  const prefersReducedMotion = useReducedMotion();
+
+  const scrollToFeatured = useCallback(
+    (e) => {
+      e.preventDefault();
+      document.getElementById("featured")?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    },
+    [prefersReducedMotion],
+  );
 
   return (
     <section className="relative min-h-screen overflow-x-hidden bg-linear-to-b from-[#003632] via-emerald-900 to-emerald-800">
@@ -83,6 +96,7 @@ export default function HomePage() {
             </Link>
             <a
               href="#featured"
+              onClick={scrollToFeatured}
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3.5 font-semibold text-white transition hover:border-emerald-400 hover:text-emerald-400"
             >
               See what&rsquo;s featured
