@@ -1,170 +1,83 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
-import { FaCartShopping, FaPlay } from "react-icons/fa6";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
+import { FaCartShopping, FaPlay, FaPause } from "react-icons/fa6";
 import { useCartStore } from "../stores/useCartStore";
 import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
-/* ---------- CONFIG ---------- */
-const CARD = 320;
-const GAP = 16;
-const STEP = CARD + GAP;
-const AUTOPLAY = 5000;
+const AUTOPLAY_DELAY = 5000;
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
-  /* ---------- DATA ---------- */
-  const base = useMemo(() => {
-    return [...featuredProducts]
-      .filter((p) => p.isFeatured)
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-  }, [featuredProducts]);
+  const base = useMemo(
+    () =>
+      [...featuredProducts]
+        .filter((p) => p.isFeatured)
+        .sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+    [featuredProducts]
+  );
 
-  const items = useMemo(() => [...base, ...base, ...base], [base]);
-  const offset = base.length * STEP;
-
-  /* ---------- STATE ---------- */
   const prefersReducedMotion = useReducedMotion();
-  const [active, setActive] = useState(0);
-  const [autoplay, setAutoplay] = useState(true);
-  const [showPlay, setShowPlay] = useState(false);
+  const [autoplayPlugin] = useState(() =>
+    Autoplay({ delay: AUTOPLAY_DELAY, stopOnInteraction: false })
+  );
 
-  /* ---------- REFS ---------- */
-  const scroller = useRef(null);
-  const jumping = useRef(false);
-  const autoplaying = useRef(false);
-  const autoplayTimeout = useRef(null);
-  const seamJumped = useRef(false);
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: true, align: "center", skipSnaps: false },
+    prefersReducedMotion ? [] : [autoplayPlugin]
+  );
 
-  /* ---------- CENTER ON LOAD ---------- */
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(!prefersReducedMotion);
+
+  const onSelect = useCallback((api) => {
+    setSelectedIndex(api.selectedScrollSnap());
+  }, []);
+
   useEffect(() => {
-    const el = scroller.current;
-    if (el) el.scrollLeft = offset;
-  }, [offset]);
-
-  /* ---------- AUTOPLAY ---------- */
-  useEffect(() => {
-    if (!autoplay || prefersReducedMotion) return;
-
-    const id = setInterval(() => {
-      const el = scroller.current;
-      if (!el || jumping.current || autoplaying.current) return;
-
-      autoplaying.current = true;
-      seamJumped.current = false;
-
-      const target = el.scrollLeft + STEP;
-
-      el.scrollTo({
-        left: target,
-        behavior: "smooth",
-      });
-
-      // Hard-align after motion finishes (skipped if a seam jump already
-      // took control of the scroll position in the meantime)
-      autoplayTimeout.current = setTimeout(() => {
-        autoplayTimeout.current = null;
-        if (seamJumped.current || jumping.current) {
-          autoplaying.current = false;
-          return;
-        }
-        const aligned = Math.round(el.scrollLeft / STEP) * STEP;
-        el.scrollLeft = aligned;
-        autoplaying.current = false;
-      }, 500);
-    }, AUTOPLAY);
-
+    if (!emblaApi) return;
+    onSelect(emblaApi);
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
     return () => {
-      clearInterval(id);
-      clearTimeout(autoplayTimeout.current);
+      emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
     };
-  }, [autoplay, prefersReducedMotion]);
+  }, [emblaApi, onSelect]);
 
-  /* ---------- SCROLL (INDEX + TRUE SEAMLESS LOOP) ---------- */
   useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-
-    const blockWidth = base.length * STEP;
-    const leftBoundary = offset - blockWidth;
-    const rightBoundary = offset + blockWidth;
-
-    const disableSnap = () => {
-      el.style.scrollSnapType = "none";
+    if (!emblaApi) return;
+    const plugin = emblaApi.plugins()?.autoplay;
+    if (!plugin) return;
+    setIsPlaying(plugin.isPlaying());
+    const handlePlay = () => setIsPlaying(true);
+    const handleStop = () => setIsPlaying(false);
+    emblaApi.on("autoplay:play", handlePlay);
+    emblaApi.on("autoplay:stop", handleStop);
+    return () => {
+      emblaApi.off("autoplay:play", handlePlay);
+      emblaApi.off("autoplay:stop", handleStop);
     };
+  }, [emblaApi]);
 
-    const enableSnap = () => {
-      el.style.scrollSnapType = "x mandatory";
-    };
+  const toggleAutoplay = useCallback(() => {
+    const plugin = emblaApi?.plugins()?.autoplay;
+    if (!plugin) return;
+    if (plugin.isPlaying()) plugin.stop();
+    else plugin.play();
+  }, [emblaApi]);
 
-    const onScroll = () => {
-      if (jumping.current) return;
-
-      const x = el.scrollLeft;
-
-      /* ----- Seam Jump: Left ----- */
-      if (x <= leftBoundary) {
-        jumping.current = true;
-        seamJumped.current = true;
-
-        const prevBehavior = el.style.scrollBehavior;
-
-        disableSnap();
-        el.style.scrollBehavior = "auto";
-        el.scrollLeft = x + blockWidth;
-
-        requestAnimationFrame(() => {
-          el.style.scrollBehavior = prevBehavior || "smooth";
-          enableSnap();
-          jumping.current = false;
-        });
-
-        return;
-      }
-
-      /* ----- Seam Jump: Right ----- */
-      if (x >= rightBoundary) {
-        jumping.current = true;
-        seamJumped.current = true;
-
-        const prevBehavior = el.style.scrollBehavior;
-
-        disableSnap();
-        el.style.scrollBehavior = "auto";
-        el.scrollLeft = x - blockWidth;
-
-        requestAnimationFrame(() => {
-          el.style.scrollBehavior = prevBehavior || "smooth";
-          enableSnap();
-          jumping.current = false;
-        });
-
-        return;
-      }
-
-      /* ----- Active Index ----- */
-      const relative = el.scrollLeft - offset;
-      const index = Math.round(relative / STEP);
-      setActive(((index % base.length) + base.length) % base.length);
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [base.length, offset]);
-
-  /* ---------- USER INTENT ---------- */
-  const stopAutoplay = () => {
-    setAutoplay(false);
-    setShowPlay(true);
-  };
-
-  const resumeAutoplay = () => {
-    setAutoplay(true);
-    setShowPlay(false);
-  };
+  const scrollTo = useCallback(
+    (index) => {
+      emblaApi?.plugins()?.autoplay?.stop();
+      emblaApi?.scrollTo(index);
+    },
+    [emblaApi]
+  );
 
   /* ---------- CART ---------- */
   const { addToCart } = useCartStore();
@@ -172,12 +85,11 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const add = (p, e) => {
     e.stopPropagation();
-    stopAutoplay();
+    emblaApi?.plugins()?.autoplay?.stop();
     if (!user) return toast.error("Please log in");
     addToCart(p);
   };
 
-  /* ---------- RENDER ---------- */
   if (!base.length) return null;
 
   return (
@@ -187,38 +99,24 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       </h2>
 
       <div className="mx-auto max-w-7xl px-4">
-        <div className="relative overflow-x-hidden">
-          <div
-            ref={scroller}
-            onPointerDown={stopAutoplay}
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-            className="flex gap-4 overflow-x-scroll overscroll-x-contain pt-8
-              [-webkit-overflow-scrolling:touch]
-              [&::-webkit-scrollbar]:hidden"
-          >
-            {items.map((p, i) => {
-              const index = i % base.length;
-              const diff = Math.abs(index - active);
-              const d = Math.min(diff, base.length - diff);
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-4 pt-8">
+            {base.map((p, index) => {
+              const d = Math.min(
+                Math.abs(index - selectedIndex),
+                base.length - Math.abs(index - selectedIndex)
+              );
 
               return (
                 <motion.div
-                  key={`${p.id}-${i}`}
-                  className="snap-center shrink-0"
-                  style={{ width: CARD }}
+                  key={p.id}
+                  className="w-72 shrink-0 sm:w-80"
                   animate={{
                     scale: d === 0 ? 1 : 0.92,
                     opacity: d === 0 ? 1 : 0.75,
                     y: d === 0 ? -4 : 0,
                   }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 220,
-                    damping: 28,
-                  }}
+                  transition={{ type: "spring", stiffness: 220, damping: 28 }}
                 >
                   <div
                     className={`flex h-full flex-col rounded-2xl border border-emerald-500/30 bg-white/10 backdrop-blur-sm
@@ -227,7 +125,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                     <img
                       src={p.image}
                       alt={p.name}
-                      loading="lazy"
+                      loading="eager"
+                      decoding="async"
+                      width={320}
+                      height={192}
                       className="h-48 w-full rounded-t-2xl object-cover"
                     />
 
@@ -246,6 +147,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                         </span>
 
                         <button
+                          type="button"
                           onClick={(e) => add(p, e)}
                           className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2 font-semibold text-white hover:bg-emerald-500"
                         >
@@ -260,22 +162,19 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           </div>
         </div>
 
-        {/* DOTS + PLAY */}
+        {/* DOTS + PLAY/PAUSE */}
         <div className="mt-6 flex items-center justify-center gap-4">
           <div className="flex gap-2">
-            {base.map((_, i) => (
+            {base.map((p, i) => (
               <motion.button
-                key={i}
-                onClick={() => {
-                  stopAutoplay();
-                  scroller.current?.scrollTo({
-                    left: offset + i * STEP,
-                    behavior: "smooth",
-                  });
-                }}
+                key={p.id}
+                type="button"
+                onClick={() => scrollTo(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                aria-current={i === selectedIndex}
                 animate={{
-                  width: i === active ? 24 : 8,
-                  opacity: i === active ? 1 : 0.4,
+                  width: i === selectedIndex ? 24 : 8,
+                  opacity: i === selectedIndex ? 1 : 0.4,
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 24 }}
                 className="h-2 rounded-full bg-emerald-400"
@@ -283,15 +182,14 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             ))}
           </div>
 
-          {showPlay && (
+          {!prefersReducedMotion && (
             <motion.button
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={resumeAutoplay}
+              type="button"
+              onClick={toggleAutoplay}
               className="rounded-full bg-emerald-700/60 p-2 text-white"
-              aria-label="Resume autoplay"
+              aria-label={isPlaying ? "Pause autoplay" : "Resume autoplay"}
             >
-              <FaPlay size={14} />
+              {isPlaying ? <FaPause size={14} /> : <FaPlay size={14} />}
             </motion.button>
           )}
         </div>
