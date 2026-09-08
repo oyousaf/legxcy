@@ -179,7 +179,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
           <div className="flex gap-2">
             {base.map((p, i) => (
               <motion.button
-                key={p.id}
+                key={getId(p)}
                 type="button"
                 onClick={() => scrollTo(i)}
                 aria-label={`Go to slide ${i + 1}`}
