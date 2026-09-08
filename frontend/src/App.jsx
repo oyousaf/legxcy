@@ -1,22 +1,26 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 import HomePage from "./pages/HomePage";
-import SignupPage from "./pages/SignupPage";
-import LoginPage from "./pages/LoginPage";
-import AdminPage from "./pages/AdminPage";
-import CategoryPage from "./pages/CategoryPage";
-import CartPage from "./pages/CartPage";
-import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
-import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 
 import { useUserStore } from "./stores/useUserStore";
 import { useCartStore } from "./stores/useCartStore";
+
+// Route-level code splitting: keep the landing page eager, defer the rest
+const SignupPage = lazy(() => import("./pages/SignupPage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const PurchaseSuccessPage = lazy(() => import("./pages/PurchaseSuccessPage"));
+const PurchaseCancelPage = lazy(() => import("./pages/PurchaseCancelPage"));
 
 function App() {
   const { user, checkAuth } = useUserStore();
@@ -38,60 +42,66 @@ function App() {
       </div>
 
       {/* APP CONTENT */}
-      <div className="relative z-10 pt-20">
+      <div className="relative z-10 flex min-h-screen flex-col pt-20">
         <Navbar />
 
-        <Routes>
-          <Route path="/" element={<HomePage />} />
+        <main className="flex-1">
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
 
-          <Route
-            path="/signup"
-            element={!user ? <SignupPage /> : <Navigate to="/" />}
-          />
+              <Route
+                path="/signup"
+                element={!user ? <SignupPage /> : <Navigate to="/" />}
+              />
 
-          <Route
-            path="/login"
-            element={!user ? <LoginPage /> : <Navigate to="/" />}
-          />
+              <Route
+                path="/login"
+                element={!user ? <LoginPage /> : <Navigate to="/" />}
+              />
 
-          <Route
-            path="/secret-dashboard"
-            element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/secret-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route path="/category/:category" element={<CategoryPage />} />
+              <Route path="/category/:category" element={<CategoryPage />} />
 
-          <Route
-            path="/cart"
-            element={
-              <ProtectedRoute>
-                <CartPage />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/cart"
+                element={
+                  <ProtectedRoute>
+                    <CartPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route
-            path="/purchase-success"
-            element={
-              <ProtectedRoute>
-                <PurchaseSuccessPage />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/purchase-success"
+                element={
+                  <ProtectedRoute>
+                    <PurchaseSuccessPage />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route
-            path="/purchase-cancel"
-            element={
-              <ProtectedRoute>
-                <PurchaseCancelPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+              <Route
+                path="/purchase-cancel"
+                element={
+                  <ProtectedRoute>
+                    <PurchaseCancelPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </main>
+
+        <Footer />
       </div>
 
       <Toaster />

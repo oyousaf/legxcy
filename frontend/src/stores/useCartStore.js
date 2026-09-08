@@ -24,7 +24,7 @@ export const useCartStore = create((set, get) => ({
         .maybeSingle();
       if (error) throw error;
       set({ coupon: data || null, isCouponApplied: !!data });
-    } catch (error) {
+    } catch {
       set({ coupon: null, isCouponApplied: false });
     } finally {
       set({ loading: false });

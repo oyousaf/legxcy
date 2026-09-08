@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import PropTypes from "prop-types";
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => (
   <AnimatePresence>
@@ -42,5 +43,12 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, itemName }) => (
     )}
   </AnimatePresence>
 );
+
+ConfirmModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  itemName: PropTypes.string,
+};
 
 export default ConfirmModal;

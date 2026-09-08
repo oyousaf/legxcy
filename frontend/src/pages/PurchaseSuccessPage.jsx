@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useCartStore } from "../stores/useCartStore";
 import { supabase } from "../lib/supabase";
 import Confetti from "react-confetti";
+import Seo from "../components/Seo";
 
 const PurchaseSuccessPage = () => {
   const [isProcessing, setIsProcessing] = useState(true);
@@ -67,15 +68,39 @@ const PurchaseSuccessPage = () => {
 
   if (isProcessing)
     return (
-      <div className="text-white text-lg text-center">
-        Processing your order…
-      </div>
+      <>
+        <Seo
+          title="Order Confirmation"
+          description="Your Legxcy order is being processed."
+          path="/purchase-success"
+          noindex
+        />
+        <div className="text-white text-lg text-center">
+          Processing your order…
+        </div>
+      </>
     );
   if (error)
-    return <div className="text-red-400 text-center py-10">Error: {error}</div>;
+    return (
+      <>
+        <Seo
+          title="Order Confirmation"
+          description="Your Legxcy order is being processed."
+          path="/purchase-success"
+          noindex
+        />
+        <div className="text-red-400 text-center py-10">Error: {error}</div>
+      </>
+    );
 
   return (
     <div className="h-screen flex items-center justify-center px-4">
+      <Seo
+        title="Order Confirmed"
+        description="Thank you for your order — your Legxcy e-bike purchase was successful."
+        path="/purchase-success"
+        noindex
+      />
       <Confetti
         width={dimensions.width}
         height={dimensions.height}

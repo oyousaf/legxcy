@@ -64,7 +64,7 @@ const AddProductForm = () => {
         category: "",
         image: "",
       });
-    } catch (err) {
+    } catch {
       toast.error("Error creating a product.");
     }
   };

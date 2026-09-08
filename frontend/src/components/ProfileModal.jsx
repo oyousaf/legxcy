@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUserStore } from "../stores/useUserStore";
 import { supabase } from "../lib/supabase";
@@ -15,7 +16,7 @@ const fmt = (d) =>
   });
 
 export default function ProfileModal({ open, onClose }) {
-  const { user, profile, setProfile } = useUserStore();
+  const { user, profile } = useUserStore();
 
   // Profile edit state
   const [edit, setEdit] = useState(false);
@@ -123,11 +124,15 @@ export default function ProfileModal({ open, onClose }) {
           {/* Profile Info and Edit */}
           <div className="space-y-3 mb-5">
             <div>
-              <label className="block text-emerald-300 text-sm font-semibold mb-1">
+              <label
+                htmlFor="profile-name"
+                className="block text-emerald-300 text-sm font-semibold mb-1"
+              >
                 Name
               </label>
               <div className="flex gap-2 items-center">
                 <input
+                  id="profile-name"
                   className="w-full rounded-lg bg-emerald-800 border border-emerald-700 p-2 text-white focus:ring-2 focus:ring-emerald-400"
                   disabled={!edit || saving}
                   name="name"
@@ -136,18 +141,22 @@ export default function ProfileModal({ open, onClose }) {
                 />
                 {!edit ? (
                   <button
+                    type="button"
                     onClick={() => setEdit(true)}
                     className="p-2 rounded-full text-emerald-300 hover:text-white transition"
                     title="Edit"
+                    aria-label="Edit profile"
                   >
                     <FiEdit2 />
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={saveProfile}
                     disabled={saving}
                     className="p-2 rounded-full text-emerald-300 hover:text-white transition"
                     title="Save"
+                    aria-label="Save profile"
                   >
                     <FiSave />
                   </button>
@@ -155,10 +164,14 @@ export default function ProfileModal({ open, onClose }) {
               </div>
             </div>
             <div>
-              <label className="block text-emerald-300 text-sm font-semibold mb-1">
+              <label
+                htmlFor="profile-email"
+                className="block text-emerald-300 text-sm font-semibold mb-1"
+              >
                 Email
               </label>
               <input
+                id="profile-email"
                 className="w-full rounded-lg bg-emerald-800 border border-emerald-700 p-2 text-white focus:ring-2 focus:ring-emerald-400"
                 disabled={!edit || saving}
                 name="email"
@@ -205,3 +218,8 @@ export default function ProfileModal({ open, onClose }) {
     </AnimatePresence>
   );
 }
+
+ProfileModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

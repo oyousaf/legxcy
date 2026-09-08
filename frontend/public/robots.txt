@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /signup
+Disallow: /cart
+Disallow: /secret-dashboard
+Disallow: /purchase-success
+Disallow: /purchase-cancel
+
+Sitemap: https://legxcy.uk/sitemap.xml

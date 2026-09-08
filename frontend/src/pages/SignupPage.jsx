@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FaLock, FaUser, FaArrowRight } from "react-icons/fa6";
 import { LuMail, LuLoader, LuUserPlus } from "react-icons/lu";
+import Seo from "../components/Seo";
 import { useUserStore } from "../stores/useUserStore";
 
 const RegisterPage = () => {
@@ -30,6 +31,13 @@ const RegisterPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
+      <Seo
+        title="Sign Up"
+        description="Create a Legxcy account to buy high-performance electric bikes and track your orders."
+        path="/signup"
+        noindex
+      />
+
       <motion.div
         className="w-full max-w-md p-8 bg-emerald-950/80 rounded-2xl shadow-2xl border border-emerald-700"
         initial={{ scale: 0.95, opacity: 0 }}
@@ -44,10 +52,14 @@ const RegisterPage = () => {
         </p>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative">
+            <label htmlFor="signup-name" className="sr-only">
+              Name
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaUser className="h-5 w-5 text-emerald-300" />
             </span>
             <input
+              id="signup-name"
               name="name"
               type="text"
               required
@@ -59,10 +71,14 @@ const RegisterPage = () => {
             />
           </div>
           <div className="relative">
+            <label htmlFor="signup-email" className="sr-only">
+              Email
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <LuMail className="h-5 w-5 text-emerald-300" />
             </span>
             <input
+              id="signup-email"
               name="email"
               type="email"
               required
@@ -74,10 +90,14 @@ const RegisterPage = () => {
             />
           </div>
           <div className="relative">
+            <label htmlFor="signup-password" className="sr-only">
+              Password
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaLock className="h-5 w-5 text-emerald-300" />
             </span>
             <input
+              id="signup-password"
               name="password"
               type="password"
               required
@@ -89,10 +109,14 @@ const RegisterPage = () => {
             />
           </div>
           <div className="relative">
+            <label htmlFor="signup-confirm-password" className="sr-only">
+              Confirm Password
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaLock className="h-5 w-5 text-emerald-300" />
             </span>
             <input
+              id="signup-confirm-password"
               name="confirmPassword"
               type="password"
               required

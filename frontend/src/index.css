@@ -1,11 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  font-family: "Candara", serif;
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
 }
 
 /* Featured card active glow */

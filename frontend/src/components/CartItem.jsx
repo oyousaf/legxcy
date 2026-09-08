@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { GoTrash } from "react-icons/go";
 import { useCartStore } from "../stores/useCartStore";
@@ -47,6 +48,9 @@ const CartItem = ({ item }) => {
             className="h-20 md:h-32 rounded object-cover"
             src={item.image}
             alt={item.name}
+            loading="lazy"
+            width={128}
+            height={128}
           />
         </div>
         <div
@@ -55,7 +59,9 @@ const CartItem = ({ item }) => {
         >
           <div className="flex items-center gap-2">
             <button
-              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border
+              type="button"
+              aria-label={`Decrease quantity of ${item.name}`}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border
                 border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-none focus:ring-2
                 focus:ring-emerald-500"
               onClick={() =>
@@ -64,10 +70,12 @@ const CartItem = ({ item }) => {
             >
               <FaMinus className="text-gray-300" />
             </button>
-            <p>{item.quantity}</p>
+            <p aria-live="polite">{item.quantity}</p>
             <button
-              className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border
-                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-none 
+              type="button"
+              aria-label={`Increase quantity of ${item.name}`}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border
+                border-emerald-600 bg-emerald-700 hover:bg-emerald-600 focus:outline-none
                 focus:ring-2 focus:ring-emerald-500"
               onClick={() =>
                 requireAuth(() => updateQuantity(item.id, item.quantity + 1))
@@ -87,6 +95,8 @@ const CartItem = ({ item }) => {
           <p className="text-sm text-emerald-400">{item.description}</p>
           <div className="flex items-center gap-4">
             <button
+              type="button"
+              aria-label={`Remove ${item.name} from cart`}
               className="inline-flex items-center text-sm font-medium text-red-500
                 hover:text-red-400 hover:underline"
               onClick={handleRemoveClick}
@@ -104,6 +114,17 @@ const CartItem = ({ item }) => {
       />
     </motion.div>
   );
+};
+
+CartItem.propTypes = {
+  item: PropTypes.shape({
+    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    name: PropTypes.string.isRequired,
+    image: PropTypes.string,
+    description: PropTypes.string,
+    price: PropTypes.number.isRequired,
+    quantity: PropTypes.number.isRequired,
+  }).isRequired,
 };
 
 export default CartItem;

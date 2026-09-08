@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import PropTypes from "prop-types";
 import { useEffect, useState } from "react";
 import { FaCartShopping } from "react-icons/fa6";
 import { FaUsers, FaPoundSign } from "react-icons/fa";
@@ -29,16 +30,11 @@ const AnalyticsTab = () => {
   });
   const [dailySalesData, setDailySalesData] = useState([]);
 
-  // Only admins can see analytics
-  if (!user || profile?.role !== "admin") {
-    return (
-      <div className="text-center p-4 text-emerald-500 font-bold bg-emerald-900 rounded-xl shadow-lg mt-10">
-        Admin access only.
-      </div>
-    );
-  }
+  const isAdmin = !!user && profile?.role === "admin";
 
   useEffect(() => {
+    if (!isAdmin) return;
+
     const fetchStats = async () => {
       setLoadingStats(true);
       setError("");
@@ -72,7 +68,7 @@ const AnalyticsTab = () => {
           totalSales,
           totalRevenue,
         });
-      } catch (error) {
+      } catch {
         setError("Failed to load stats. Please check your database and API keys.");
         setAnalyticsData({
           users: 0,
@@ -110,7 +106,7 @@ const AnalyticsTab = () => {
           (a, b) => new Date(a.name) - new Date(b.name)
         );
         setDailySalesData(dailySalesData);
-      } catch (error) {
+      } catch {
         setError("Failed to load chart. Please check your database and API keys.");
         setDailySalesData([]);
       } finally {
@@ -120,7 +116,15 @@ const AnalyticsTab = () => {
 
     fetchStats();
     fetchChart();
-  }, []);
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return (
+      <div className="text-center p-4 text-emerald-500 font-bold bg-emerald-900 rounded-xl shadow-lg mt-10">
+        Admin access only.
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -234,3 +238,10 @@ const AnalyticsCard = ({ title, value, icon: Icon, color }) => (
     </div>
   </motion.div>
 );
+
+AnalyticsCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.elementType.isRequired,
+  color: PropTypes.string.isRequired,
+};

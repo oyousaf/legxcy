@@ -79,7 +79,7 @@ const OrderSummary = () => {
       } else {
         toast.error("Failed to start checkout.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Checkout failed");
     } finally {
       setLoading(false);

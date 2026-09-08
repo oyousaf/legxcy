@@ -30,7 +30,7 @@ export const uploadImageToSupabase = async (image) => {
       throw new Error("Unsupported image format");
     }
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from("product-images")
       .upload(fileName, fileData, { contentType, upsert: true });
 

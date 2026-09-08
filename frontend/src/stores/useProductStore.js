@@ -28,7 +28,7 @@ export const useProductStore = create((set, get) => ({
         imageUrl = publicUrl;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("products")
         .insert([{ ...productData, image: imageUrl }])
         .select("*")

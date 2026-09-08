@@ -1,4 +1,5 @@
 import toast from "react-hot-toast";
+import PropTypes from "prop-types";
 import { FaCartShopping } from "react-icons/fa6";
 import { useUserStore } from "../stores/useUserStore";
 import { useCartStore } from "../stores/useCartStore";
@@ -24,6 +25,9 @@ const ProductCard = ({ product }) => {
           className="object-cover w-full h-full"
           src={product.image}
           alt={product.name}
+          loading="lazy"
+          width={320}
+          height={224}
         />
         <div className="absolute inset-0 bg-black bg-opacity-20" />
       </div>
@@ -41,6 +45,7 @@ const ProductCard = ({ product }) => {
           £{product.price}
         </span>
         <button
+          type="button"
           className="flex items-center justify-center rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300"
           onClick={handleAddToCart}
         >
@@ -50,6 +55,15 @@ const ProductCard = ({ product }) => {
       </div>
     </div>
   );
+};
+
+ProductCard.propTypes = {
+  product: PropTypes.shape({
+    image: PropTypes.string,
+    name: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    price: PropTypes.number.isRequired,
+  }).isRequired,
 };
 
 export default ProductCard;

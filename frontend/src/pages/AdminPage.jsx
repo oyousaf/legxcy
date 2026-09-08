@@ -8,6 +8,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import AnalyticsTab from "../components/AnalyticsTab";
 import AddProductForm from "../components/AddProductForm";
 import ProductsList from "../components/ProductsList";
+import Seo from "../components/Seo";
 import { useProductStore } from "../stores/useProductStore";
 import { useUserStore } from "../stores/useUserStore";
 
@@ -106,6 +107,13 @@ const AdminPage = () => {
         animate="animate"
         exit="exit"
       >
+        <Seo
+          title="Admin Dashboard"
+          description="Legxcy admin dashboard."
+          path="/secret-dashboard"
+          noindex
+        />
+
         <div className="relative z-10 container mx-auto px-4 py-16">
           <motion.h1
             className="text-4xl font-bold mb-8 text-emerald-400 text-center"

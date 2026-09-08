@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { motion, AnimatePresence } from "framer-motion";
 import { GoTrash } from "react-icons/go";
 import { FaStar } from "react-icons/fa6";
@@ -66,6 +67,13 @@ function ConfirmModal({ open, onConfirm, onCancel, productName }) {
   );
 }
 
+ConfirmModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  productName: PropTypes.string,
+};
+
 const getId = (p) => p.id ?? p._id;
 
 const ProductsList = () => {
@@ -97,7 +105,10 @@ const ProductsList = () => {
     description: "",
   });
 
-  const safeProducts = Array.isArray(products) ? products : [];
+  const safeProducts = useMemo(
+    () => (Array.isArray(products) ? products : []),
+    [products]
+  );
 
   // GLOBAL SORT + FILTER + SEARCH APPLIED HERE
   const filteredSortedProducts = useMemo(() => {
@@ -342,7 +353,13 @@ const ProductsList = () => {
                   >
                     <div className="pointer-events-auto">
                       <button
+                        type="button"
                         onClick={() => handleToggleFeatured(product)}
+                        aria-label={
+                          product.isFeatured
+                            ? "Remove from featured"
+                            : "Mark as featured"
+                        }
                         className={`p-2 rounded-full transition-colors duration-200 ${
                           product.isFeatured
                             ? "bg-yellow-400 text-emerald-900"
@@ -362,12 +379,21 @@ const ProductsList = () => {
                       {isEditing ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => handleSaveEdit(product)}
-                            className="p-2 text-emerald-400 hover:text-white"
+                            disabled={savingEdit}
+                            aria-label="Save changes"
+                            className="p-2 text-emerald-400 hover:text-white disabled:opacity-50"
                           >
-                            <FiSave className="h-5 w-5" />
+                            {savingEdit ? (
+                              <span className="block h-5 w-5 animate-spin rounded-full border-t-2 border-b-2 border-emerald-400" />
+                            ) : (
+                              <FiSave className="h-5 w-5" />
+                            )}
                           </button>
                           <button
+                            type="button"
+                            aria-label="Cancel editing"
                             onClick={() => {
                               setEditing(null);
                               setEditValues({
@@ -385,6 +411,8 @@ const ProductsList = () => {
                       ) : (
                         <>
                           <button
+                            type="button"
+                            aria-label={`Edit ${product.name}`}
                             onClick={() => {
                               if (!isAdmin)
                                 return toast.error("Admin access required.");
@@ -397,6 +425,8 @@ const ProductsList = () => {
                           </button>
 
                           <button
+                            type="button"
+                            aria-label={`Delete ${product.name}`}
                             onClick={() => {
                               if (!isAdmin)
                                 return toast.error("Admin access required.");

@@ -82,7 +82,7 @@ export const useUserStore = create((set, get) => ({
       if (user) {
         await get().fetchProfile(user.id);
       }
-    } catch (error) {
+    } catch {
       set({ user: null, profile: null });
     } finally {
       set({ checkingAuth: false });

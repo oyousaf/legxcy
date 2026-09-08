@@ -3,6 +3,7 @@ import { useProductStore } from "../stores/useProductStore";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../components/ProductCard";
+import Seo from "../components/Seo";
 import { LuMoveRight } from "react-icons/lu";
 import { FaChevronDown } from "react-icons/fa";
 import { useUIStore } from "../stores/useUIStore";
@@ -129,6 +130,15 @@ const CategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-900/60 to-gray-900/95">
+      <Seo
+        title={heading}
+        description={
+          categoryDescriptions[category] ||
+          `Browse Legxcy's ${heading} electric bikes — high-performance e-bikes for every ride.`
+        }
+        path={`/category/${category}`}
+      />
+
       <div className="relative max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 
         {/* Heading */}

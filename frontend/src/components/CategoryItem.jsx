@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 
 const CategoryItem = ({ category }) => {
   return (
@@ -10,7 +11,8 @@ const CategoryItem = ({ category }) => {
             src={category.imageUrl}
             alt={category.name}
             className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-            loading="lazy"
+            loading="eager"
+            fetchPriority="high"
           />
           <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
             <h3 className="text-white text-2xl font-bold mb-2">
@@ -21,6 +23,14 @@ const CategoryItem = ({ category }) => {
       </Link>
     </div>
   );
+};
+
+CategoryItem.propTypes = {
+  category: PropTypes.shape({
+    href: PropTypes.string.isRequired,
+    imageUrl: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
 export default CategoryItem;

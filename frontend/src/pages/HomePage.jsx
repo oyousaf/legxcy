@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import CategoryItem from "../components/CategoryItem";
 import FeaturedProducts from "../components/FeaturedProducts";
+import Seo from "../components/Seo";
 import { useProductStore } from "../stores/useProductStore";
 
 const categories = [
@@ -27,6 +28,11 @@ export default function HomePage() {
 
   return (
     <section className="relative min-h-screen overflow-x-hidden bg-gradient-to-b from-[#003632] via-emerald-900 to-emerald-800">
+      <Seo
+        description="Shop Legxcy high-performance electric bikes — hub-drive and mid-drive e-bikes engineered for adventure trails and everyday urban commuting. Eco-friendly, powerful, built to last."
+        path="/"
+      />
+
       {/* HERO + CATEGORIES */}
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
         {/* Header */}

@@ -2,10 +2,17 @@ import { FiXCircle } from "react-icons/fi";
 import { FaArrowLeft } from "react-icons/fa6";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import Seo from "../components/Seo";
 
 const PurchaseCancelPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
+      <Seo
+        title="Order Cancelled"
+        description="Your Legxcy checkout was cancelled — no charges were made."
+        path="/purchase-cancel"
+        noindex
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

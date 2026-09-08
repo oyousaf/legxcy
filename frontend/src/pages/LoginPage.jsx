@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FaLock, FaArrowRight } from "react-icons/fa6";
 import { LuLogIn, LuMail, LuLoader } from "react-icons/lu";
+import Seo from "../components/Seo";
 import { useUserStore } from "../stores/useUserStore";
 
 const LoginPage = () => {
@@ -22,6 +23,13 @@ const LoginPage = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
+      <Seo
+        title="Login"
+        description="Log in to your Legxcy account to track orders and manage your profile."
+        path="/login"
+        noindex
+      />
+
       <motion.div
         className="w-full max-w-md p-8 bg-emerald-950/80 rounded-2xl shadow-2xl border border-emerald-700"
         initial={{ scale: 0.95, opacity: 0 }}
@@ -37,6 +45,9 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email */}
           <div className="relative">
+            <label htmlFor="email" className="sr-only">
+              Email
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <LuMail className="h-5 w-5 text-emerald-300" />
             </span>
@@ -53,6 +64,9 @@ const LoginPage = () => {
           </div>
           {/* Password */}
           <div className="relative">
+            <label htmlFor="password" className="sr-only">
+              Password
+            </label>
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center">
               <FaLock className="h-5 w-5 text-emerald-300" />
             </span>

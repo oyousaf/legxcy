@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { motion, useReducedMotion } from "framer-motion";
 import { FaCartShopping, FaPlay } from "react-icons/fa6";
 import { useCartStore } from "../stores/useCartStore";
@@ -22,8 +23,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       );
   }, [featuredProducts]);
 
-  if (!base.length) return null;
-
   const items = useMemo(() => [...base, ...base, ...base], [base]);
   const offset = base.length * STEP;
 
@@ -37,6 +36,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   const scroller = useRef(null);
   const jumping = useRef(false);
   const autoplaying = useRef(false);
+  const autoplayTimeout = useRef(null);
+  const seamJumped = useRef(false);
 
   /* ---------- CENTER ON LOAD ---------- */
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       if (!el || jumping.current || autoplaying.current) return;
 
       autoplaying.current = true;
+      seamJumped.current = false;
 
       const target = el.scrollLeft + STEP;
 
@@ -61,15 +63,24 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
         behavior: "smooth",
       });
 
-      // Hard-align after motion finishes
-      setTimeout(() => {
+      // Hard-align after motion finishes (skipped if a seam jump already
+      // took control of the scroll position in the meantime)
+      autoplayTimeout.current = setTimeout(() => {
+        autoplayTimeout.current = null;
+        if (seamJumped.current || jumping.current) {
+          autoplaying.current = false;
+          return;
+        }
         const aligned = Math.round(el.scrollLeft / STEP) * STEP;
         el.scrollLeft = aligned;
         autoplaying.current = false;
       }, 500);
     }, AUTOPLAY);
 
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      clearTimeout(autoplayTimeout.current);
+    };
   }, [autoplay, prefersReducedMotion]);
 
   /* ---------- SCROLL (INDEX + TRUE SEAMLESS LOOP) ---------- */
@@ -97,6 +108,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       /* ----- Seam Jump: Left ----- */
       if (x <= leftBoundary) {
         jumping.current = true;
+        seamJumped.current = true;
 
         const prevBehavior = el.style.scrollBehavior;
 
@@ -116,6 +128,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       /* ----- Seam Jump: Right ----- */
       if (x >= rightBoundary) {
         jumping.current = true;
+        seamJumped.current = true;
 
         const prevBehavior = el.style.scrollBehavior;
 
@@ -165,6 +178,8 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   };
 
   /* ---------- RENDER ---------- */
+  if (!base.length) return null;
+
   return (
     <section className="py-20 overflow-x-hidden">
       <h2 className="mb-10 text-center text-5xl font-extrabold text-emerald-400">
@@ -284,3 +299,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     </section>
   );
 }
+
+FeaturedProducts.propTypes = {
+  featuredProducts: PropTypes.array,
+};
