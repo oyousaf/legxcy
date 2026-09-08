@@ -9,6 +9,7 @@ import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
 const AUTOPLAY_DELAY = 5000;
+const getId = (p) => p.id ?? p._id;
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   const base = useMemo(
@@ -49,6 +50,12 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     };
   }, [emblaApi, onSelect]);
 
+  // Slides can change after mount (e.g. the async product fetch resolving
+  // after Embla already measured the DOM) - tell Embla to recompute.
+  useEffect(() => {
+    emblaApi?.reInit();
+  }, [emblaApi, base]);
+
   useEffect(() => {
     if (!emblaApi) return;
     const plugin = emblaApi.plugins()?.autoplay;
@@ -87,7 +94,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     e.stopPropagation();
     emblaApi?.plugins()?.autoplay?.stop();
     if (!user) return toast.error("Please log in");
-    addToCart(p);
+    addToCart(p.id ? p : { ...p, id: getId(p) });
   };
 
   if (!base.length) return null;
@@ -109,7 +116,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
               return (
                 <motion.div
-                  key={p.id}
+                  key={getId(p)}
                   className="w-72 shrink-0 sm:w-80"
                   animate={{
                     scale: d === 0 ? 1 : 0.92,
