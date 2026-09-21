@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 
 const year = new Date().getFullYear();
 
@@ -77,6 +78,29 @@ export default function Footer() {
 
         <div className="mt-10 border-t border-emerald-800 pt-6 text-center text-xs text-emerald-400">
           &copy; {year} Legxcy. All rights reserved.
+        </div>
+
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-emerald-400">
+          <span>Built with</span>
+          <motion.span
+            aria-hidden="true"
+            className="inline-block leading-none"
+            animate={{ rotate: -360 }}
+            transition={{ repeat: Infinity, duration: 7, ease: "linear" }}
+          >
+            💚
+          </motion.span>
+          <span>
+            by{" "}
+            <a
+              href="https://legxcysol.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-emerald-200 transition hover:text-emerald-400"
+            >
+              Legxcy Solutions
+            </a>
+          </span>
         </div>
       </div>
     </footer>
