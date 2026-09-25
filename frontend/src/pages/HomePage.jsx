@@ -157,7 +157,7 @@ export default function HomePage() {
       </div>
 
       {/* FEATURED SECTION (ISOLATED FROM PAGE WIDTH) */}
-      <div id="featured" className="relative scroll-mt-24 overflow-x-hidden">
+      <div id="featured" className="relative scroll-mt-24 overflow-x-clip">
         {loading && (
           <div className="flex h-96 items-center justify-center">
             <div className="mx-auto h-64 w-full max-w-7xl animate-pulse rounded-lg bg-emerald-800" />

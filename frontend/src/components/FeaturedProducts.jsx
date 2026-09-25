@@ -15,7 +15,17 @@ import { useUserStore } from "../stores/useUserStore";
 import toast from "react-hot-toast";
 
 const AUTOPLAY_DELAY = 5000;
+const EAGER_IMAGE_COUNT = 4;
 const getId = (p) => p.id ?? p._id;
+
+// Snap offset: centred on mobile, otherwise lines the card up with the page's
+// content column (max-w-7xl + sm:px-6/lg:px-8) while the track still runs
+// full-bleed. Keep in sync with those classes; assumes a 16px root font size.
+const contentInset = (viewSize, snapSize) => {
+  if (viewSize < 640) return (viewSize - snapSize) / 2;
+  const gutter = viewSize >= 1024 ? 32 : 24;
+  return Math.max(0, (viewSize - 1280) / 2) + gutter;
+};
 
 export default function FeaturedProducts({ featuredProducts = [] }) {
   const base = useMemo(
@@ -30,16 +40,26 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   );
 
   const prefersReducedMotion = useReducedMotion();
+  // Play/pause is driven from React state below rather than the plugin's own
+  // resume logic, so a user's pause survives drags, hovers and reInits.
   const [autoplayPlugin] = useState(() =>
-    Autoplay({ delay: AUTOPLAY_DELAY, stopOnInteraction: false }),
+    Autoplay({
+      delay: AUTOPLAY_DELAY,
+      playOnInit: false,
+      stopOnInteraction: true,
+      stopOnFocusIn: false,
+    }),
   );
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true, align: "start", dragFree: true },
+    { loop: true, align: contentInset, dragFree: true },
     prefersReducedMotion ? [] : [autoplayPlugin],
   );
 
-  const [isPlaying, setIsPlaying] = useState(!prefersReducedMotion);
+  const [userPaused, setUserPaused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hasFocus, setHasFocus] = useState(false);
+  const shouldPlay = !userPaused && !isHovered && !hasFocus;
   const [progress, setProgress] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -69,37 +89,47 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
     emblaApi?.reInit();
   }, [emblaApi, base]);
 
+  // Apply shouldPlay to the plugin, and re-apply it after anything that stops
+  // or re-creates it: a drag ends (touch - mouse drags are covered by hover),
+  // or a reInit (resize, slide changes) re-initialises the plugin.
   useEffect(() => {
     if (!emblaApi) return;
-    const plugin = emblaApi.plugins()?.autoplay;
-    if (!plugin) return;
-    setIsPlaying(plugin.isPlaying());
-    const handlePlay = () => setIsPlaying(true);
-    const handleStop = () => setIsPlaying(false);
-    emblaApi.on("autoplay:play", handlePlay);
-    emblaApi.on("autoplay:stop", handleStop);
-    return () => {
-      emblaApi.off("autoplay:play", handlePlay);
-      emblaApi.off("autoplay:stop", handleStop);
+    const sync = () => {
+      const plugin = emblaApi.plugins()?.autoplay;
+      if (!plugin) return;
+      if (shouldPlay) plugin.play();
+      else plugin.stop();
     };
-  }, [emblaApi]);
+    sync();
+    emblaApi.on("pointerUp", sync);
+    emblaApi.on("reInit", sync);
+    return () => {
+      emblaApi.off("pointerUp", sync);
+      emblaApi.off("reInit", sync);
+    };
+  }, [emblaApi, shouldPlay]);
 
-  const toggleAutoplay = useCallback(() => {
-    const plugin = emblaApi?.plugins()?.autoplay;
-    if (!plugin) return;
-    if (plugin.isPlaying()) plugin.stop();
-    else plugin.play();
-  }, [emblaApi]);
+  const toggleAutoplay = useCallback(() => setUserPaused((p) => !p), []);
 
   const scrollPrev = useCallback(() => {
-    emblaApi?.plugins()?.autoplay?.stop();
+    setUserPaused(true);
     emblaApi?.scrollPrev();
   }, [emblaApi]);
 
   const scrollNext = useCallback(() => {
-    emblaApi?.plugins()?.autoplay?.stop();
+    setUserPaused(true);
     emblaApi?.scrollNext();
   }, [emblaApi]);
+
+  const onPointerEnter = (e) => {
+    if (e.pointerType === "mouse") setIsHovered(true);
+  };
+  const onPointerLeave = (e) => {
+    if (e.pointerType === "mouse") setIsHovered(false);
+  };
+  const onBlur = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setHasFocus(false);
+  };
 
   /* ---------- CART ---------- */
   const { addToCart } = useCartStore();
@@ -107,7 +137,6 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
 
   const add = (p, e) => {
     e.stopPropagation();
-    emblaApi?.plugins()?.autoplay?.stop();
     if (!user) return toast.error("Please log in");
     addToCart(p.id ? p : { ...p, id: getId(p) });
   };
@@ -115,13 +144,20 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
   if (!base.length) return null;
 
   return (
-    <section className="py-24">
+    <section
+      className="py-24"
+      aria-roledescription="carousel"
+      aria-labelledby="featured-heading"
+    >
       <div className="mx-auto mb-8 flex max-w-7xl items-end justify-between px-4 sm:px-6 lg:px-8">
         <div>
           <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-emerald-400 uppercase">
             Handpicked
           </p>
-          <h2 className="font-display text-4xl font-bold text-white sm:text-5xl">
+          <h2
+            id="featured-heading"
+            className="font-display text-4xl font-bold text-white sm:text-5xl"
+          >
             Featured
           </h2>
         </div>
@@ -149,10 +185,10 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
             <button
               type="button"
               onClick={toggleAutoplay}
-              aria-label={isPlaying ? "Pause autoplay" : "Resume autoplay"}
+              aria-label={userPaused ? "Resume autoplay" : "Pause autoplay"}
               className="ml-1 rounded-full border border-white/15 p-2.5 text-white/80 transition hover:border-emerald-400 hover:text-emerald-400"
             >
-              {isPlaying ? <LuPause size={18} /> : <LuPlay size={18} />}
+              {userPaused ? <LuPlay size={18} /> : <LuPause size={18} />}
             </button>
           )}
         </div>
@@ -161,14 +197,27 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
       <div
         className="overflow-hidden mask-[linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)]"
         ref={emblaRef}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
+        onFocus={() => setHasFocus(true)}
+        onBlur={onBlur}
       >
-        <div className="flex gap-5 px-4 sm:px-6 lg:px-8">
-          {base.map((p) => (
+        {/* py-2 leaves room for the hover lift inside the clipped viewport.
+            Spacing is a margin on each slide, not flex gap: Embla reads the
+            last slide's margin as the gap at the loop seam, but ignores gap. */}
+        <div className="flex py-2">
+          {base.map((p, index) => (
             // Embla controls this element's transform (for loop
             // repositioning) - it must not share a transform with the
             // Motion element below, or the two will fight and Embla's
             // slide placement breaks on the loop wrap.
-            <div key={getId(p)} className="w-64 shrink-0 sm:w-80">
+            <div
+              key={getId(p)}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${index + 1} of ${base.length}`}
+              className="mr-5 w-64 shrink-0 sm:w-80"
+            >
               <motion.div
                 className="group h-full overflow-hidden rounded-3xl border border-white/10 bg-emerald-950/60"
                 whileHover={prefersReducedMotion ? undefined : { y: -6 }}
@@ -178,7 +227,7 @@ export default function FeaturedProducts({ featuredProducts = [] }) {
                   <img
                     src={p.image}
                     alt={p.name}
-                    loading="eager"
+                    loading={index < EAGER_IMAGE_COUNT ? "eager" : "lazy"}
                     decoding="async"
                     width={320}
                     height={240}
