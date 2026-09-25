@@ -61,15 +61,6 @@ export default function HomePage() {
           animate="visible"
           className="text-center lg:text-left"
         >
-          <img
-            src="/logo.png"
-            alt="Legxcy Logo"
-            width={160}
-            height={64}
-            className="mx-auto mb-6 select-none lg:mx-0"
-            draggable={false}
-          />
-
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-emerald-300 uppercase">
             <LuZap className="h-3.5 w-3.5" />
             Built for the ride ahead
